@@ -1,0 +1,67 @@
+;;;
+;;; Copyright (c) Microsoft Corporation. All rights reserved
+;;;
+;;; Abstract:
+;;; Callout sample driver install configuration.
+;;;
+
+[Version]
+signature   =   "$Windows NT$"
+Provider 	=   %Msft%
+DriverVer   =   01/07/2004,VER_P5000.2
+
+[DestinationDirs]
+DefaultDestDir	        = 12
+SEND.DriverFiles      = 12 			;%windir%\System32\drivers
+
+;;
+;; Default install sections
+;;
+
+[DefaultInstall]
+OptionDesc          = %MsnMntrServiceDesc%
+CopyFiles           = SEND.DriverFiles
+
+[DefaultInstall.Services]
+AddService          = %MsnMntrServiceName%,,SEND.Service
+
+;;
+;; Default uninstall sections
+;;
+
+[DefaultUninstall]
+DelFiles   = SEND.DriverFiles
+
+[DefaultUninstall.Services]
+DelService = %MsnMntrServiceName%,0x200		; Flags note to stop service first
+
+;
+; Services Section
+;
+
+[SEND.Service]
+DisplayName      = %MsnMntrServiceName%
+Description      = %MsnMntrServiceDesc%
+ServiceBinary    = C:\Windows\System32\drivers\send_callout.sys  	;%windir%\System32\drivers\send_callout.sys
+ServiceType      = 1					;SERVICE_KERNEL_DRIVER
+StartType        = 3					;SERVICE_DEMAND_START
+ErrorControl     = 1					;SERVICE_ERROR_NORMAL
+
+;
+; Copy Files
+;
+
+[SEND.DriverFiles]
+send_callout.sys,,,0x00000040   ; COPYFLG_OVERWRITE_OLDER_ONLY
+
+;;
+;; String Section
+;;
+
+[Strings]
+Msft              = "Thomas Zimmermann"
+MsnMntrServiceDesc  = "SEND Callout Driver"
+MsnMntrServiceName  = "send_callout"
+MsnMntrRegistry     = "system\currentcontrolset\services\send_callout"
+
+
