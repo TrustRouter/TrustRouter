@@ -1,4 +1,7 @@
+*.out
+
 # Mac OS X
 .DS_Store*
 xcuserdata/
 project.xcworkspace/
+
