@@ -367,11 +367,12 @@ void completeClassificationOfPacket(CHAR firstChar) {
 }
 
 VOID completeOperationAndReinjectPacket() {
-
+	
+	NTSTATUS status;
 
 	FwpsCompleteOperation0(gReinjectInfo->aleCompletionContext, gReinjectInfo->netBufferList);
 	
-	FwpsInjectTransportReceiveAsync0(
+	status = FwpsInjectTransportReceiveAsync0(
 			gReinjectInfo->injectionHandle,
 			NULL,
 		    0,
@@ -383,7 +384,21 @@ VOID completeOperationAndReinjectPacket() {
 			gReinjectInfo->netBufferList,
 			completionFn,
 			gReinjectInfo);
-	
+			
+	switch (status) {
+	case STATUS_SUCCESS:
+		DbgPrint("Packet injected successfully.\n");
+		break;
+	case STATUS_FWP_TCPIP_NOT_READY:
+		DbgPrint("Packet cannot be injected: TCPIP is not ready.\n");
+		break;
+	case STATUS_FWP_INJECT_HANDLE_CLOSING:
+		DbgPrint("Packet cannot be injected: Handle is closing.\n");
+		break;
+	default:
+		DbgPrint("Packet cannot be injected: Return value is %0x\n", status);
+		break;
+	}	
 }
 
 VOID NTAPI completionFn(
@@ -394,6 +409,33 @@ VOID NTAPI completionFn(
 	ICMP_V6_REINJECT_INFO *reinjectInfo = (ICMP_V6_REINJECT_INFO *) context;
 	
 	ExFreePoolWithTag(reinjectInfo, "denS");
+	
+	switch (netBufferList->Status) {
+	case NDIS_STATUS_SUCCESS:
+		DbgPrint("Net Buffer injection was successful.\n");
+		break;
+	case NDIS_STATUS_INVALID_LENGTH:
+		DbgPrint("Net Buffer injection failed: Invalid Length.\n");
+		break;
+	case NDIS_STATUS_RESOURCES:
+		DbgPrint("Net Buffer injection failed: Insufficent ressources.\n");
+		break;
+	case NDIS_STATUS_FAILURE:
+		DbgPrint("Net Buffer injection failed for some reason.\n");
+		break;
+	case NDIS_STATUS_SEND_ABORTED:
+		DbgPrint("Net Buffer injection was aborted.\n");
+		break;
+	case NDIS_STATUS_RESET_IN_PROGRESS:
+		DbgPrint("Net Buffer injection was resetted.\n");
+		break;
+	case NDIS_STATUS_PAUSED:
+		DbgPrint("Net Buffer injection was paused.\n");
+		break;
+	default:
+		DbgPrint("Net Buffer status not recognized: %0x\n", netBufferList->Status);
+		break;
+	}
 	
 	FwpsFreeCloneNetBufferList0(netBufferList, 0);
 }
