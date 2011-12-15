@@ -220,8 +220,8 @@ VOID NTAPI ClassifyFn1(
 	int i;
 	NTSTATUS status;
 	PVOID packetBuf, Ppacket = NULL;
-	
-	HANDLE injectionHandle = NULL
+	FWPS_PACKET_INJECTION_STATE injectionState;
+	HANDLE injectionHandle = NULL;
 	
 	//PACKET_LIST_ENTRY *packetListEntry = {0};
 
@@ -322,7 +322,7 @@ VOID NTAPI ClassifyFn1(
 	gReinjectInfo->subInterfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_SUB_INTERFACE_INDEX].value.uint32;
 	
 	if (FWPS_IS_METADATA_FIELD_PRESENT(inMetaValues, FWPS_METADATA_FIELD_COMPARTMENT_ID)) {
-		gReinjectInfo->compartmentId = inMetaValues->CompartmentId;
+		gReinjectInfo->compartmentId = inMetaValues->compartmentId;
 	} else {
 		gReinjectInfo->compartmentId = UNSPECIFIED_COMPARTMENT_ID;
 	}

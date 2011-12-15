@@ -29,13 +29,11 @@ VOID NTAPI FlowDeleteFn(
     IN UINT16  layerId,
     IN UINT32  calloutId,
     IN UINT64  flowContext);
-	
-VOID NTAPI FWPS_INJECT_COMPLETE0 completionFn;	
+		
 VOID NTAPI completionFn(
-  __in     VOID *context,
-  __inout  NET_BUFFER_LIST *netBufferList,
-  __in     BOOLEAN dispatchLevel
-)
+	IN VOID *context,
+	IN OUT NET_BUFFER_LIST *netBufferList,
+	IN BOOLEAN dispatchLevel);
 	
 VOID InitializeFilter();
 VOID completeClassificationOfPacket(CHAR firstChar);
