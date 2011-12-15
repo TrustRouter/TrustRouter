@@ -6,6 +6,17 @@ typedef struct {
 	LIST_ENTRY listEntry;
 } PACKET_LIST_ENTRY;
 
+typedef struct {
+	NET_BUFFER_LIST *netBufferList;
+	ADDRESS_FAMILY af;
+	COMPARTMENT_ID compartmentId;
+	IF_INDEX interfaceIndex;
+	IF_INDEX subInterfaceIndex;
+	HANDLE aleCompletionContext;
+	HANDLE injectionHandle;
+   
+} ICMP_V6_REINJECT_INFO;
+
 DEFINE_GUID(SEND_CALLOUT_DRIVER, 
 0x252ed6b3, 0x2265, 0x4621, 0xb9, 0x1a, 0x9e, 0xb2, 0xc7, 0x3b, 0x45, 0xec);
 
@@ -14,8 +25,8 @@ LIST_ENTRY packetListHead = {0};
 DWORD packetByteCount = 0;
 UNICODE_STRING symLinkName = {0};
 UINT64 classifyHandle = 0;
-FWPS_CLASSIFY_OUT0 *gClassifyOut = NULL;
-HANDLE gCompletionContext;
+
+ICMP_V6_REINJECT_INFO *gReinjectInfo = NULL;
 
 NTSTATUS DriverEntry(
    IN  PDRIVER_OBJECT  pDriverObject,
@@ -203,31 +214,60 @@ VOID NTAPI ClassifyFn1(
     IN UINT64  flowContext,
     OUT FWPS_CLASSIFY_OUT0  *classifyOut) 
 {
-	NET_BUFFER_LIST *netBufferList;
+	NET_BUFFER_LIST *netBufferList = (NET_BUFFER_LIST *)layerData;
+	NET_BUFFER_LIST *clonedNetBufferList = NULL;
 	NET_BUFFER *netBuffer;
-	ULONG nblOffset;
-	MDL *currentMdl;
-	UCHAR *p;
 	int i;
 	NTSTATUS status;
 	PVOID packetBuf, Ppacket = NULL;
+	
+	HANDLE injectionHandle = NULL
 	
 	//PACKET_LIST_ENTRY *packetListEntry = {0};
 
 	//ExAllocatePoolWithTag(PagedPool, sizeof(PACKET_LIST_ENTRY), "denS");
 	
-	gClassifyOut = classifyOut;
-	
 	DbgPrint("Got packet for classification.");
 	
-	netBufferList = (NET_BUFFER_LIST *)layerData;
-	netBuffer = NET_BUFFER_LIST_FIRST_NB(netBufferList);
-	currentMdl = NET_BUFFER_CURRENT_MDL(netBuffer);
+	// Get a handle for injection. Assumption: We only want to inject IPv6 packets.
+	status = FwpsInjectionHandleCreate0(
+						AF_INET6,
+						FWPS_INJECTION_TYPE_TRANSPORT,
+						&injectionHandle);
+	
+	if (status == STATUS_FWP_TCPIP_NOT_READY) {
+		DbgPrint("TCPIP stack not ready for injection.\n");
+	} else if (status == STATUS_SUCCESS) {
+		DbgPrint("Injection handle created successfully.\n");
+	} else {
+		DbgPrint("Error when trying to get injection handle: %0x\n", status);
+	}					
+	
+	// Check if the packet was previously injected by this driver.
+	// In this case, we can assume that it is to be permitted.
+	injectionState = FwpsQueryPacketInjectionState0(
+						injectionHandle,
+						netBufferList,
+						NULL);
+						
+	if (injectionState == FWPS_PACKET_INJECTED_BY_SELF || injectionState == FWPS_PACKET_PREVIOUSLY_INJECTED_BY_SELF) {
+		classifyOut->actionType = FWP_ACTION_PERMIT;
+		return;
+	}
+	
+	FwpsAllocateCloneNetBufferList0(
+				netBufferList,
+				NULL,
+				NULL,
+				0,
+				&clonedNetBufferList);
 	
 	// At this layer, we are at the beginning of the ICMP payload.
 	// We want to go back to the start of the IP-header.
 	// NOTE: This adjustment has to be undone before returning from
 	// classifyFn1 using NdisAdvanceNetBufferDataStart !
+	netBuffer = NET_BUFFER_LIST_FIRST_NB(netBufferList);
+	
 	NdisRetreatNetBufferDataStart(netBuffer,
 								  inMetaValues->ipHeaderSize + inMetaValues->transportHeaderSize,
 								  0,
@@ -243,6 +283,8 @@ VOID NTAPI ClassifyFn1(
 					  1,
 					  0);
 	
+	// NdisGetDataBuffer() can EITHER return a pointer to the packet data
+	// OR it can put the data into the buffer provided (packetBuf).
 	if (Ppacket == NULL) {
 		packet = packetBuf;
 	} else {
@@ -260,25 +302,34 @@ VOID NTAPI ClassifyFn1(
 								  inMetaValues->ipHeaderSize + inMetaValues->transportHeaderSize,
 								  0,
 								  NULL);
-					  
-	//packetListEntry.packetData = packet;
-	//InsertTailList(&packetListHead, &(packetListEntry.listEntry));
-	
-	
-	//packet = (PUCHAR) currentMdl->MappedSystemVa + nblOffset;
-	
-	//FwpsAcquireClassifyHandle0(classifyContext, 0, &classifyHandle);
-	// status = FwpsPendClassify0(classifyHandle, 
-			// filter->filterId,
-			// 0,
-			// classifyOut);
-			
+					 
+	// We want to inspect the packet further in user mode, so absorb and block
+	// the packet for the moment. If we want allow it, we have to reinject it later.
 	classifyOut->actionType = FWP_ACTION_BLOCK;
 	classifyOut->flags = FWPS_CLASSIFY_OUT_FLAG_ABSORB;
-			
+	
+	// Allocate and populate a ICMP_V6_REINJECT_INFO structure that holds all information
+	// necessary to complete the operation and reinject the packet later if necessary.
+	// If the decision is made in user mode to permit the packet, this information
+	// will be read in completeOperationAndReinjectPacket().
+	
+	gReinjectInfo = ExAllocatePoolWithTag(PagedPool, sizeof(ICMP_V6_REINJECT_INFO), "denS");
+	
+	gReinjectInfo->netBufferList = clonedNetBufferList;
+	gReinjectInfo->injectionHandle = injectionHandle;
+	gReinjectInfo->af = AF_INET6;
+	gReinjectInfo->interfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_INTERFACE_INDEX].value.uint32;
+	gReinjectInfo->subInterfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_SUB_INTERFACE_INDEX].value.uint32;
+	
+	if (FWPS_IS_METADATA_FIELD_PRESENT(inMetaValues, FWPS_METADATA_FIELD_COMPARTMENT_ID)) {
+		gReinjectInfo->compartmentId = inMetaValues->CompartmentId;
+	} else {
+		gReinjectInfo->compartmentId = UNSPECIFIED_COMPARTMENT_ID;
+	}
+	
 	status = FwpsPendOperation0(
 			inMetaValues->completionHandle,
-			&gCompletionContext);
+			&(gReinjectInfo->aleCompletionContext));
 			
 	if (status == STATUS_FWP_CANNOT_PEND) {
 		DbgPrint("Cannot pend Classify.\n");
@@ -288,10 +339,6 @@ VOID NTAPI ClassifyFn1(
 		DbgPrint("Error when trying to pend packet: %0x\n", status);
 	}
 			
-	// The next part should be in a function that the user mode program
-	// calls if the validation of the message was successful.
-								  
-
 }
 
 void completeClassificationOfPacket(CHAR firstChar) {
@@ -300,24 +347,55 @@ void completeClassificationOfPacket(CHAR firstChar) {
 	
 	case 'P': 
 		DbgPrint("Packet classified as 'Permit'.\n");
-		//gClassifyOut->actionType = FWP_ACTION_PERMIT;
+		completeOperationAndReinjectPacket();
 		break;
 
 	case 'B':
 		DbgPrint("Packet classified as 'Block'.\n");
-		//gClassifyOut->actionType = FWP_ACTION_BLOCK;
+		FwpsCompleteOperation0(gReinjectInfo->aleCompletionContext, NULL);
 		break;	
 		
 	default:
-		DbgPrint("Packet classified as 'Block'.\n");
-		//gClassifyOut->actionType = FWP_ACTION_BLOCK;
+		DbgPrint("Packet classified as 'Block' per default.\n");
+		FwpsCompleteOperation0(gReinjectInfo->aleCompletionContext, NULL);
 		break;	
 		
 	}
 		
-	FwpsCompleteOperation0(gCompletionContext, NULL);
-	//FwpsCompleteClassify0(classifyHandle, 0, gClassifyOut);
 	
+	
+}
+
+VOID completeOperationAndReinjectPacket() {
+
+
+	FwpsCompleteOperation0(gReinjectInfo->aleCompletionContext, gReinjectInfo->netBufferList);
+	
+	FwpsInjectTransportReceiveAsync0(
+			gReinjectInfo->injectionHandle,
+			NULL,
+		    0,
+			0,
+			AF_INET6,
+			gReinjectInfo->compartmentId,
+			gReinjectInfo->interfaceIndex,
+			gReinjectInfo->subInterfaceIndex,
+			gReinjectInfo->netBufferList,
+			completionFn,
+			gReinjectInfo);
+	
+}
+
+VOID NTAPI completionFn(
+	VOID *context,
+	NET_BUFFER_LIST *netBufferList,
+	BOOLEAN dispatchLevel) 
+{
+	ICMP_V6_REINJECT_INFO *reinjectInfo = (ICMP_V6_REINJECT_INFO *) context;
+	
+	ExFreePoolWithTag(reinjectInfo, "denS");
+	
+	FwpsFreeCloneNetBufferList0(netBufferList, 0);
 }
 
 NTSTATUS NTAPI NotifyFn1(

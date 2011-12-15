@@ -30,8 +30,16 @@ VOID NTAPI FlowDeleteFn(
     IN UINT32  calloutId,
     IN UINT64  flowContext);
 	
+VOID NTAPI FWPS_INJECT_COMPLETE0 completionFn;	
+VOID NTAPI completionFn(
+  __in     VOID *context,
+  __inout  NET_BUFFER_LIST *netBufferList,
+  __in     BOOLEAN dispatchLevel
+)
+	
 VOID InitializeFilter();
 VOID completeClassificationOfPacket(CHAR firstChar);
+VOID completeOperationAndReinjectPacket();
 	
 NTSTATUS SendCalloutCreate(PDEVICE_OBJECT pDeviceObject, PIRP Irp);
 NTSTATUS SendCalloutWrite(PDEVICE_OBJECT pDeviceObject, PIRP Irp);
