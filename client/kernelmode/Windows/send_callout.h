@@ -38,6 +38,7 @@ VOID NTAPI completionFn(
 VOID InitializeFilter();
 VOID completeClassificationOfPacket(CHAR firstChar);
 VOID completeOperationAndReinjectPacket();
+void printDataFromNetBufferList(NET_BUFFER_LIST *netBufferList);
 	
 NTSTATUS SendCalloutCreate(PDEVICE_OBJECT pDeviceObject, PIRP Irp);
 NTSTATUS SendCalloutWrite(PDEVICE_OBJECT pDeviceObject, PIRP Irp);

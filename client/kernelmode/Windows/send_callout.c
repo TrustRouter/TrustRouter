@@ -43,6 +43,8 @@ NTSTATUS DriverEntry(
 	symLinkName = usDosDeviceName;	
 	IoCreateSymbolicLink(&symLinkName, &usDriverName);
 	
+	DbgPrint("----------------------------------------------------------------\n");
+	
 	status = IoCreateDevice(
 		pDriverObject,
 		0,
@@ -215,8 +217,7 @@ VOID NTAPI ClassifyFn1(
     OUT FWPS_CLASSIFY_OUT0  *classifyOut) 
 {
 	NET_BUFFER_LIST *netBufferList = (NET_BUFFER_LIST *)layerData;
-	NET_BUFFER *netBuffer;
-	int i;
+	NET_BUFFER *netBuffer, *clonedNetBuffer;
 	NTSTATUS status;
 	PVOID packetBuf, Ppacket = NULL;
 	FWPS_PACKET_INJECTION_STATE injectionState;
@@ -225,6 +226,7 @@ VOID NTAPI ClassifyFn1(
 	PNDIS_GENERIC_OBJECT ndisHandle;
 	NET_BUFFER_LIST_POOL_PARAMETERS poolParameters;
 	NET_BUFFER_LIST *clonedNetBufferList;
+	int i;
 	
 	//PACKET_LIST_ENTRY *packetListEntry = {0};
 
@@ -257,31 +259,7 @@ VOID NTAPI ClassifyFn1(
 		classifyOut->actionType = FWP_ACTION_PERMIT;
 		return;
 	}
-	
-	// Make a deep copy of the net buffer list.
-	ndisHandle = NdisAllocateGenericObject(0, 'dneS', 0);
-	
-	poolParameters.Header.Type = NDIS_OBJECT_TYPE_DEFAULT;
-	poolParameters.Header.Revision = NET_BUFFER_LIST_POOL_PARAMETERS_REVISION_1;
-	poolParameters.Header.Size = NDIS_SIZEOF_NET_BUFFER_LIST_POOL_PARAMETERS_REVISION_1;
-	poolParameters.ProtocolId = NDIS_PROTOCOL_ID_DEFAULT;
-	poolParameters.fAllocateNetBuffer = TRUE;
-	poolParameters.ContextSize = 0;
-	poolParameters.DataSize = 0;
-	poolParameters.PoolTag = 'dneS';
-	
-	netBufferListPoolHandle = NdisAllocateNetBufferListPool(
-			ndisHandle,
-			&poolParameters);
-	
-	FwpsAllocateNetBufferAndNetBufferList0(
-			netBufferListPoolHandle,
-			0,
-			0,
-			NULL,
-			0,
-			0,
-			&clonedNetBufferList);
+
 	
 	// At this layer, we are at the beginning of the ICMP payload.
 	// We want to go back to the start of the IP-header.
@@ -293,31 +271,31 @@ VOID NTAPI ClassifyFn1(
 								  inMetaValues->ipHeaderSize + inMetaValues->transportHeaderSize,
 								  0,
 								  NULL);
-								
-
-	packetBuf = ExAllocatePoolWithTag(PagedPool, NET_BUFFER_DATA_LENGTH(netBuffer) + 1, "denS");
-	packetByteCount = NET_BUFFER_DATA_LENGTH(netBuffer) + 1;
 	
-	Ppacket = NdisGetDataBuffer(netBuffer,
-					  NET_BUFFER_DATA_LENGTH(netBuffer),
-					  packetBuf,
-					  1,
-					  0);
+	DbgPrint("Original Net Buffer List:\n");
+	printDataFromNetBufferList(netBufferList);
 	
-	// NdisGetDataBuffer() can EITHER return a pointer to the packet data
-	// OR it can put the data into the buffer provided (packetBuf).
-	if (Ppacket == NULL) {
-		packet = packetBuf;
-	} else {
-		packet = Ppacket;
-	}
+	// Make a shallow copy of the net buffer list.
+	FwpsAllocateCloneNetBufferList0(
+		netBufferList,
+		NULL,
+		NULL,
+		0,
+		&clonedNetBufferList);
+		
+	// FwpsReferenceNetBufferList0(
+		// clonedNetBufferList,
+		// FALSE);
+		
+	DbgPrint("AAAAAAAA Cloned Net Buffer List:\n");
+	printDataFromNetBufferList(clonedNetBufferList);
 	
-	if (packetByteCount >= 97) {
-		DbgPrint("Packet Data from Net Buffer (Prefix):");	
-		for (i = 80; i < 97; i++) {
-			DbgPrint("%0x", packet[i]);
-		}
-	}
+	// if (packetByteCount >= 97) {
+		// DbgPrint("Packet Data from Net Buffer (Prefix):");	
+		// for (i = 80; i < 97; i++) {
+			// DbgPrint("%0x", packet[i]);
+		// }
+	// }
 	
 	NdisAdvanceNetBufferDataStart(netBuffer,
 								  inMetaValues->ipHeaderSize + inMetaValues->transportHeaderSize,
@@ -362,6 +340,34 @@ VOID NTAPI ClassifyFn1(
 			
 }
 
+void printDataFromNetBufferList(NET_BUFFER_LIST *netBufferList) {
+	NET_BUFFER *netBuffer;
+	PVOID packetBuf, Ppacket = NULL;
+	int i;
+	
+	netBuffer = NET_BUFFER_LIST_FIRST_NB(netBufferList);
+	
+	packetBuf = ExAllocatePoolWithTag(PagedPool, NET_BUFFER_DATA_LENGTH(netBuffer) + 1, "denS");
+	packetByteCount = NET_BUFFER_DATA_LENGTH(netBuffer) + 1;
+	
+	Ppacket = NdisGetDataBuffer(netBuffer,
+					  NET_BUFFER_DATA_LENGTH(netBuffer),
+					  packetBuf,
+					  1,
+					  0);
+					  
+	if (Ppacket == NULL) {
+		packet = packetBuf;
+	} else {
+		packet = Ppacket;
+	}	
+
+	for (i = 0; i < packetByteCount; i++) {
+		DbgPrint("%0x ", packet[i]);
+	}
+	DbgPrint("\n");
+}
+
 void completeClassificationOfPacket(CHAR firstChar) {
 
 	switch(firstChar) {
@@ -390,6 +396,9 @@ void completeClassificationOfPacket(CHAR firstChar) {
 VOID completeOperationAndReinjectPacket() {
 	
 	NTSTATUS status;
+	
+	DbgPrint("Injecting Net Buffer List:\n");
+	printDataFromNetBufferList(gReinjectInfo->netBufferList);
 
 	FwpsCompleteOperation0(gReinjectInfo->aleCompletionContext, gReinjectInfo->netBufferList);
 	
