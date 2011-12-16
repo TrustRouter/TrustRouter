@@ -215,13 +215,16 @@ VOID NTAPI ClassifyFn1(
     OUT FWPS_CLASSIFY_OUT0  *classifyOut) 
 {
 	NET_BUFFER_LIST *netBufferList = (NET_BUFFER_LIST *)layerData;
-	NET_BUFFER_LIST *clonedNetBufferList = NULL;
 	NET_BUFFER *netBuffer;
 	int i;
 	NTSTATUS status;
 	PVOID packetBuf, Ppacket = NULL;
 	FWPS_PACKET_INJECTION_STATE injectionState;
 	HANDLE injectionHandle = NULL;
+	NDIS_HANDLE netBufferListPoolHandle;
+	PNDIS_GENERIC_OBJECT ndisHandle;
+	NET_BUFFER_LIST_POOL_PARAMETERS poolParameters;
+	NET_BUFFER_LIST *clonedNetBufferList;
 	
 	//PACKET_LIST_ENTRY *packetListEntry = {0};
 
@@ -255,12 +258,30 @@ VOID NTAPI ClassifyFn1(
 		return;
 	}
 	
-	FwpsAllocateCloneNetBufferList0(
-				netBufferList,
-				NULL,
-				NULL,
-				0,
-				&clonedNetBufferList);
+	// Make a deep copy of the net buffer list.
+	ndisHandle = NdisAllocateGenericObject(0, 'dneS', 0);
+	
+	poolParameters.Header.Type = NDIS_OBJECT_TYPE_DEFAULT;
+	poolParameters.Header.Revision = NET_BUFFER_LIST_POOL_PARAMETERS_REVISION_1;
+	poolParameters.Header.Size = NDIS_SIZEOF_NET_BUFFER_LIST_POOL_PARAMETERS_REVISION_1;
+	poolParameters.ProtocolId = NDIS_PROTOCOL_ID_DEFAULT;
+	poolParameters.fAllocateNetBuffer = TRUE;
+	poolParameters.ContextSize = 0;
+	poolParameters.DataSize = 0;
+	poolParameters.PoolTag = 'dneS';
+	
+	netBufferListPoolHandle = NdisAllocateNetBufferListPool(
+			ndisHandle,
+			&poolParameters);
+	
+	FwpsAllocateNetBufferAndNetBufferList0(
+			netBufferListPoolHandle,
+			0,
+			0,
+			NULL,
+			0,
+			0,
+			&clonedNetBufferList);
 	
 	// At this layer, we are at the beginning of the ICMP payload.
 	// We want to go back to the start of the IP-header.
