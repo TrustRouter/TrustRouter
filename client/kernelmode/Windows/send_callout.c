@@ -255,9 +255,11 @@ VOID NTAPI ClassifyFn1(
 						netBufferList,
 						NULL);
 						
-	if (injectionState == FWPS_PACKET_INJECTED_BY_SELF || injectionState == FWPS_PACKET_PREVIOUSLY_INJECTED_BY_SELF) {
-		classifyOut->actionType = FWP_ACTION_PERMIT;
-		return;
+	if (injectionState == FWPS_PACKET_INJECTED_BY_SELF 
+		|| injectionState == FWPS_PACKET_PREVIOUSLY_INJECTED_BY_SELF
+		|| injectionState == FWPS_PACKET_INJECTED_BY_OTHER) {
+			classifyOut->actionType = FWP_ACTION_PERMIT;
+			return;
 	}
 
 	
