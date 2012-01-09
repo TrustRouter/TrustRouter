@@ -1,10 +1,6 @@
 #include "send_callout.h"
 
 // {252ED6B3-2265-4621-B91A-9EB2C73B45EC}
-typedef struct {
-	UCHAR *packetData;
-	LIST_ENTRY listEntry;
-} PACKET_LIST_ENTRY;
 
 typedef struct {
 	NET_BUFFER_LIST *netBufferList;
@@ -14,19 +10,17 @@ typedef struct {
 	IF_INDEX subInterfaceIndex;
 	HANDLE aleCompletionContext;
 	HANDLE injectionHandle;
-   
+	LIST_ENTRY listEntry;   
 } ICMP_V6_REINJECT_INFO;
 
 DEFINE_GUID(SEND_CALLOUT_DRIVER, 
 0x252ed6b3, 0x2265, 0x4621, 0xb9, 0x1a, 0x9e, 0xb2, 0xc7, 0x3b, 0x45, 0xec);
 
-PCHAR packet = NULL;
-LIST_ENTRY packetListHead = {0}; 
-DWORD packetByteCount = 0;
+LIST_ENTRY gReinjectListHead = {0}; 
 UNICODE_STRING symLinkName = {0};
 UINT64 classifyHandle = 0;
+KSPINLOCK *gSpinLock = NULL;
 
-ICMP_V6_REINJECT_INFO *gReinjectInfo = NULL;
 
 NTSTATUS DriverEntry(
    IN  PDRIVER_OBJECT  pDriverObject,
@@ -34,8 +28,6 @@ NTSTATUS DriverEntry(
 {
 	NTSTATUS status;
 	UNICODE_STRING usDriverName, usDosDeviceName;
-	
-	InitializeListHead(&packetListHead);
 	
 	RtlInitUnicodeString(&usDriverName, L"\\Device\\SendCallout");
 	RtlInitUnicodeString(&usDosDeviceName, L"\\DosDevices\\SendCallout");
@@ -61,6 +53,11 @@ NTSTATUS DriverEntry(
 	pDriverObject->MajorFunction[IRP_MJ_WRITE] = SendCalloutWrite;
 	
 	pDeviceObject->Flags = DO_BUFFERED_IO;		
+	
+	gSpinLock = ExAllocatePoolWithTag(NonPagedPool, sizeof(KSPIN_LOCK), "denS");
+	KeInitializeSpinLock(gSpinLock);
+	
+	InitializeListHead(&gReinjectListHead);
 	
 	InitializeFilter();
 	
@@ -145,27 +142,45 @@ NTSTATUS SendCalloutRead(PDEVICE_OBJECT pDeviceObject, PIRP Irp) {
 	NTSTATUS status = STATUS_BUFFER_TOO_SMALL;
     PIO_STACK_LOCATION pIoStackIrp = NULL;
 	PCHAR pReadDataBuffer;
-	PCHAR pReturnData = packet;
-    UINT dwDataSize = packetByteCount;
+	PCHAR pReturnData;
+    UINT packetByteCount;
 	UINT dwDataRead = 0;
 	
-	if(pReturnData != NULL) {
-	//if(!IsListEmpty(&packetListHead)) {
+	//if(pReturnData != NULL) {
+	if (!IsListEmpty(&gReinjectListHead)) {
+		NET_BUFFER *pNetBuffer;
+		PVOID packetBuf, Ppacket = NULL;
+		int i;
 	
-		//PLIST_ENTRY plistEntry = RemoveHeadList(&packetListHead);
-		//PACKET_LIST_ENTRY *packetListEntry = CONTAINING_RECORD(plistEntry, PACKET_LIST_ENTRY, listEntry);
+		PLIST_ENTRY plistEntry = ExInterlockedRemoveHeadList(&gReinjectListHead, gSpinLock);
+		ICMP_V6_REINJECT_INFO *packetListEntry = CONTAINING_RECORD(plistEntry, ICMP_V6_REINJECT_INFO, listEntry);
 		
-		//pReturnData = packetListEntry->packetData;
+		pNetBuffer = NET_BUFFER_LIST_FIRST_NB(packetListEntry->netBufferList);
+
+		packetBuf = ExAllocatePoolWithTag(PagedPool, NET_BUFFER_DATA_LENGTH(pNetBuffer), "denS");
+		packetByteCount = NET_BUFFER_DATA_LENGTH(pNetBuffer);
+		
+		Ppacket = NdisGetDataBuffer(pNetBuffer,
+						  NET_BUFFER_DATA_LENGTH(pNetBuffer),
+						  packetBuf,
+						  1,
+						  0);
+						  
+		if (Ppacket == NULL) {
+			pReturnData = packetBuf;
+		} else {
+			pReturnData = Ppacket;
+		}	
 		
 		pIoStackIrp = IoGetCurrentIrpStackLocation(Irp);
 		
 		if(pIoStackIrp)
 		{
 			pReadDataBuffer = (PCHAR)Irp->AssociatedIrp.SystemBuffer;
-			if(pReadDataBuffer && pIoStackIrp->Parameters.Read.Length >= dwDataSize)
+			if(pReadDataBuffer && pIoStackIrp->Parameters.Read.Length >= packetByteCount)
 			{
-				RtlCopyMemory(pReadDataBuffer, pReturnData, dwDataSize);
-				dwDataRead = dwDataSize;
+				RtlCopyMemory(pReadDataBuffer, pReturnData, packetByteCount);
+				dwDataRead = packetByteCount;
 				status = STATUS_SUCCESS;
 			}
 		}
@@ -226,6 +241,7 @@ VOID NTAPI ClassifyFn1(
 	PNDIS_GENERIC_OBJECT ndisHandle;
 	NET_BUFFER_LIST_POOL_PARAMETERS poolParameters;
 	NET_BUFFER_LIST *clonedNetBufferList;
+	ICMP_V6_REINJECT_INFO *reinjectInfo;
 	int i;
 	
 	//PACKET_LIST_ENTRY *packetListEntry = {0};
@@ -259,7 +275,10 @@ VOID NTAPI ClassifyFn1(
 		|| injectionState == FWPS_PACKET_PREVIOUSLY_INJECTED_BY_SELF
 		|| injectionState == FWPS_PACKET_INJECTED_BY_OTHER) {
 			classifyOut->actionType = FWP_ACTION_PERMIT;
+			DbgPrint("This packet has been injected before. Permitting it.\n");
 			return;
+	} else {
+		DbgPrint("Packet Injection State: %0x\n", injectionState);
 	}
 
 	
@@ -314,23 +333,25 @@ VOID NTAPI ClassifyFn1(
 	// If the decision is made in user mode to permit the packet, this information
 	// will be read in completeOperationAndReinjectPacket().
 	
-	gReinjectInfo = ExAllocatePoolWithTag(PagedPool, sizeof(ICMP_V6_REINJECT_INFO), "denS");
+	reinjectInfo = ExAllocatePoolWithTag(PagedPool, sizeof(ICMP_V6_REINJECT_INFO), "denS");
 	
-	gReinjectInfo->netBufferList = clonedNetBufferList;
-	gReinjectInfo->injectionHandle = injectionHandle;
-	gReinjectInfo->af = AF_INET6;
-	gReinjectInfo->interfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_INTERFACE_INDEX].value.uint32;
-	gReinjectInfo->subInterfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_SUB_INTERFACE_INDEX].value.uint32;
+	reinjectInfo->netBufferList = clonedNetBufferList;
+	reinjectInfo->injectionHandle = injectionHandle;
+	reinjectInfo->af = AF_INET6;
+	reinjectInfo->interfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_INTERFACE_INDEX].value.uint32;
+	reinjectInfo->subInterfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_SUB_INTERFACE_INDEX].value.uint32;
 	
 	if (FWPS_IS_METADATA_FIELD_PRESENT(inMetaValues, FWPS_METADATA_FIELD_COMPARTMENT_ID)) {
-		gReinjectInfo->compartmentId = inMetaValues->compartmentId;
+		reinjectInfo->compartmentId = inMetaValues->compartmentId;
 	} else {
-		gReinjectInfo->compartmentId = UNSPECIFIED_COMPARTMENT_ID;
+		reinjectInfo->compartmentId = UNSPECIFIED_COMPARTMENT_ID;
 	}
+	
+	ExInterlockedInsertTailList(&gReinjectListHead, &(reinjectInfo->listEntry), gSpinLock);
 	
 	status = FwpsPendOperation0(
 			inMetaValues->completionHandle,
-			&(gReinjectInfo->aleCompletionContext));
+			&(reinjectInfo->aleCompletionContext));
 			
 	if (status == STATUS_FWP_CANNOT_PEND) {
 		DbgPrint("Cannot pend Classify.\n");
@@ -349,8 +370,9 @@ void printDataFromNetBufferList(NET_BUFFER_LIST *netBufferList) {
 	
 	netBuffer = NET_BUFFER_LIST_FIRST_NB(netBufferList);
 	
-	packetBuf = ExAllocatePoolWithTag(PagedPool, NET_BUFFER_DATA_LENGTH(netBuffer) + 1, "denS");
-	packetByteCount = NET_BUFFER_DATA_LENGTH(netBuffer) + 1;
+	//TODO free packetBuf
+	packetBuf = ExAllocatePoolWithTag(PagedPool, NET_BUFFER_DATA_LENGTH(netBuffer), "denS");
+	packetByteCount = NET_BUFFER_DATA_LENGTH(netBuffer);
 	
 	Ppacket = NdisGetDataBuffer(netBuffer,
 					  NET_BUFFER_DATA_LENGTH(netBuffer),
