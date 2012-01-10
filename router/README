@@ -1,5 +1,15 @@
 $Id: README,v 1.9 2005/12/31 16:10:05 psavola Exp $
 
+Build from Repository:
+======================
+Use git to clone the repository on github to your local repository.
+After that, use automake to generate required files:
+1. > aclocal
+2. > autoheader
+3. > automake --add-missing
+4. > autoreconf
+5. proceed with installation steps...
+
 Installation:
 =============
 

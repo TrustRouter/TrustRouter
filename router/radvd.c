@@ -245,8 +245,8 @@ main(int argc, char *argv[])
 	}
 
 	/* check that 'other' cannot write the file
-         * for non-root, also that self/own group can't either
-         */
+     * for non-root, also that self/own group can't either
+     */
 	if (check_conffile_perm(username, conf_file) < 0) {
 		if (get_debuglevel() == 0) {
 			flog(LOG_ERR, "Exiting, permissions on conf_file invalid.\n");

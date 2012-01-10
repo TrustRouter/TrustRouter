@@ -499,6 +499,8 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		memcpy(buff + buff_dest, &ha_info, sizeof(ha_info));
 	}
 
+	// TODO add the signature option here
+
 	iov.iov_len  = len;
 	iov.iov_base = (caddr_t) buff;
 
@@ -536,5 +538,13 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 			dlog(LOG_DEBUG, 3, "sendmsg: %s", strerror(errno));
 	}
 
+	return 0;
+}
+
+/* Sends a certification path advertisement message on the given interface
+ * to the given IPv6 address. */
+int
+send_cpa(struct interface*, struct in6_addr*){
+	// TODO implement this method
 	return 0;
 }
