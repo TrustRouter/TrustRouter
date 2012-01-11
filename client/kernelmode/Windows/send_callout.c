@@ -2,24 +2,15 @@
 
 // {252ED6B3-2265-4621-B91A-9EB2C73B45EC}
 
-typedef struct {
-	NET_BUFFER_LIST *netBufferList;
-	ADDRESS_FAMILY af;
-	COMPARTMENT_ID compartmentId;
-	IF_INDEX interfaceIndex;
-	IF_INDEX subInterfaceIndex;
-	HANDLE aleCompletionContext;
-	HANDLE injectionHandle;
-	LIST_ENTRY listEntry;   
-} ICMP_V6_REINJECT_INFO;
-
 DEFINE_GUID(SEND_CALLOUT_DRIVER, 
 0x252ed6b3, 0x2265, 0x4621, 0xb9, 0x1a, 0x9e, 0xb2, 0xc7, 0x3b, 0x45, 0xec);
 
 LIST_ENTRY gReinjectListHead = {0}; 
 UNICODE_STRING symLinkName = {0};
 UINT64 classifyHandle = 0;
-KSPINLOCK *gSpinLock = NULL;
+PKSPIN_LOCK gSpinLock = NULL;
+FAST_MUTEX gListMutex;
+UINT k;
 
 
 NTSTATUS DriverEntry(
@@ -54,8 +45,9 @@ NTSTATUS DriverEntry(
 	
 	pDeviceObject->Flags = DO_BUFFERED_IO;		
 	
-	gSpinLock = ExAllocatePoolWithTag(NonPagedPool, sizeof(KSPIN_LOCK), "denS");
-	KeInitializeSpinLock(gSpinLock);
+	//gSpinLock = ExAllocatePoolWithTag(NonPagedPool, sizeof(KSPIN_LOCK), "denS");
+	//KeInitializeSpinLock(gSpinLock);
+	ExInitializeFastMutex(&gListMutex);
 	
 	InitializeListHead(&gReinjectListHead);
 	
@@ -143,48 +135,66 @@ NTSTATUS SendCalloutRead(PDEVICE_OBJECT pDeviceObject, PIRP Irp) {
     PIO_STACK_LOCATION pIoStackIrp = NULL;
 	PCHAR pReadDataBuffer;
 	PCHAR pReturnData;
-    UINT packetByteCount;
+    UINT packetByteCount, returnDataCount;
 	UINT dwDataRead = 0;
 	
 	//if(pReturnData != NULL) {
 	if (!IsListEmpty(&gReinjectListHead)) {
 		NET_BUFFER *pNetBuffer;
 		PVOID packetBuf, Ppacket = NULL;
-		int i;
-	
-		PLIST_ENTRY plistEntry = ExInterlockedRemoveHeadList(&gReinjectListHead, gSpinLock);
-		ICMP_V6_REINJECT_INFO *packetListEntry = CONTAINING_RECORD(plistEntry, ICMP_V6_REINJECT_INFO, listEntry);
+		int i;	
+		ICMP_V6_REINJECT_INFO *pReinjectInfoToRead = NULL;
+		//PLIST_ENTRY plistEntry = RemoveHeadList(&gReinjectListHead, gSpinLock);
 		
-		pNetBuffer = NET_BUFFER_LIST_FIRST_NB(packetListEntry->netBufferList);
-
-		packetBuf = ExAllocatePoolWithTag(PagedPool, NET_BUFFER_DATA_LENGTH(pNetBuffer), "denS");
-		packetByteCount = NET_BUFFER_DATA_LENGTH(pNetBuffer);
-		
-		Ppacket = NdisGetDataBuffer(pNetBuffer,
-						  NET_BUFFER_DATA_LENGTH(pNetBuffer),
-						  packetBuf,
-						  1,
-						  0);
-						  
-		if (Ppacket == NULL) {
-			pReturnData = packetBuf;
-		} else {
-			pReturnData = Ppacket;
-		}	
-		
-		pIoStackIrp = IoGetCurrentIrpStackLocation(Irp);
-		
-		if(pIoStackIrp)
-		{
-			pReadDataBuffer = (PCHAR)Irp->AssociatedIrp.SystemBuffer;
-			if(pReadDataBuffer && pIoStackIrp->Parameters.Read.Length >= packetByteCount)
-			{
-				RtlCopyMemory(pReadDataBuffer, pReturnData, packetByteCount);
-				dwDataRead = packetByteCount;
-				status = STATUS_SUCCESS;
-			}
+		// Look in the gReinjectList for reinject infos that have not yet been read.
+		// If one is found, write it to the read buffer.
+		PLIST_ENTRY pListEntry = gReinjectListHead.Flink;
+		while (pListEntry != &gReinjectListHead) {
+			ICMP_V6_REINJECT_INFO *pReinjectInfo = CONTAINING_RECORD(pListEntry, ICMP_V6_REINJECT_INFO, listEntry);
+			if (!pReinjectInfo->hasBeenRead) {
+				pReinjectInfoToRead = pReinjectInfo;
+				break;
+			}					
+			pListEntry = pListEntry->Flink;
 		}
 		
+		if (pReinjectInfoToRead != NULL) {			
+			
+			// Get the packet data from the Net Buffer.
+			pNetBuffer = NET_BUFFER_LIST_FIRST_NB(pReinjectInfoToRead->netBufferList);
+
+			packetBuf = ExAllocatePoolWithTag(PagedPool, NET_BUFFER_DATA_LENGTH(pNetBuffer), "denS");
+			packetByteCount = NET_BUFFER_DATA_LENGTH(pNetBuffer);
+			
+			Ppacket = NdisGetDataBuffer(pNetBuffer,
+							  NET_BUFFER_DATA_LENGTH(pNetBuffer),
+							  packetBuf,
+							  1,
+							  0);
+							  
+			if (Ppacket == NULL) {
+				pReturnData = packetBuf;
+			} else {
+				pReturnData = Ppacket;
+			}	
+			
+			pIoStackIrp = IoGetCurrentIrpStackLocation(Irp);
+			
+			if(pIoStackIrp)
+			{
+				pReadDataBuffer = (PCHAR)Irp->AssociatedIrp.SystemBuffer;
+				if(pReadDataBuffer && pIoStackIrp->Parameters.Read.Length >= packetByteCount)
+				{
+					RtlCopyMemory(pReadDataBuffer, &pReinjectInfoToRead, sizeof(pReinjectInfoToRead));
+					DbgPrint("READ: Copied %p to buffer.\n", pReinjectInfoToRead);
+					RtlCopyMemory(pReadDataBuffer + sizeof(ICMP_V6_REINJECT_INFO *), pReturnData, packetByteCount);
+					dwDataRead = packetByteCount + sizeof(ICMP_V6_REINJECT_INFO *);
+					status = STATUS_SUCCESS;
+					
+					pReinjectInfoToRead->hasBeenRead = TRUE;
+				}
+			}
+		}		
 	}
 	
 	Irp->IoStatus.Status = status;
@@ -198,6 +208,10 @@ NTSTATUS SendCalloutWrite(PDEVICE_OBJECT pDeviceObject, PIRP Irp) {
 	NTSTATUS status = STATUS_SUCCESS;
 	PIO_STACK_LOCATION pIoStackIrp = NULL;
     PCHAR pWriteDataBuffer;
+	USER_MODE_CLASSIFICATION_RESULT *pClassificationResult;
+	UINT i;
+	PLIST_ENTRY pListEntry;
+	BOOLEAN foundEntry = FALSE;
 	
 	pIoStackIrp = IoGetCurrentIrpStackLocation(Irp);
 	
@@ -212,15 +226,48 @@ NTSTATUS SendCalloutWrite(PDEVICE_OBJECT pDeviceObject, PIRP Irp) {
 			 * is NULL terminated. Bad things can happen
 			 * if we access memory not valid while in the Kernel.
 			 */
-			CHAR firstChar = pWriteDataBuffer[0];
-			DbgPrint("Data Written: %s\n", pWriteDataBuffer);
-			DbgPrint("First char: %c\n", firstChar);
-			completeClassificationOfPacket(firstChar);
+			//DbgPrint("Data Written: %s\n", pWriteDataBuffer);
+			ICMP_V6_REINJECT_INFO *pReinjectInfo;
+			UCHAR action;
+			
+			pClassificationResult = ExAllocatePoolWithTag(PagedPool, sizeof(USER_MODE_CLASSIFICATION_RESULT), "denS");
+			RtlCopyMemory(pClassificationResult, pWriteDataBuffer, sizeof(USER_MODE_CLASSIFICATION_RESULT));
+			
+			pReinjectInfo = pClassificationResult->pReinjectInfo;
+			action = pClassificationResult->action;
+			
+			DbgPrint("WRITE: Copied: Address %p, Action: %c\n", pReinjectInfo, action);
+			
+				
+			// Check if pReinjectInfo points to a 
+			// reinject info in the global list.
+			
+			ExAcquireFastMutex(&gListMutex);
+	
+			pListEntry = gReinjectListHead.Flink;
+			while (pListEntry != &gReinjectListHead) {
+				ICMP_V6_REINJECT_INFO *pCurrentReinjectInfo = CONTAINING_RECORD(pListEntry, ICMP_V6_REINJECT_INFO, listEntry);
+				if (pCurrentReinjectInfo == pReinjectInfo) {
+					foundEntry = TRUE;
+					break;
+				}					
+				pListEntry = pListEntry->Flink;
+			}
+			
+			ExReleaseFastMutex(&gListMutex);
+	
+			if (!foundEntry) {
+				DbgPrint("Error: list entry not found!\n");
+				status = STATUS_NO_SUCH_FILE;
+			} else {			
+				completeClassificationOfPacket(pReinjectInfo, action);
+			}
         }
     }
 	
 	return status;
 }
+
 
 VOID NTAPI ClassifyFn1(
     IN const FWPS_INCOMING_VALUES0  *inFixedValues,
@@ -340,6 +387,7 @@ VOID NTAPI ClassifyFn1(
 	reinjectInfo->af = AF_INET6;
 	reinjectInfo->interfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_INTERFACE_INDEX].value.uint32;
 	reinjectInfo->subInterfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_SUB_INTERFACE_INDEX].value.uint32;
+	reinjectInfo->hasBeenRead = FALSE;
 	
 	if (FWPS_IS_METADATA_FIELD_PRESENT(inMetaValues, FWPS_METADATA_FIELD_COMPARTMENT_ID)) {
 		reinjectInfo->compartmentId = inMetaValues->compartmentId;
@@ -347,7 +395,11 @@ VOID NTAPI ClassifyFn1(
 		reinjectInfo->compartmentId = UNSPECIFIED_COMPARTMENT_ID;
 	}
 	
-	ExInterlockedInsertTailList(&gReinjectListHead, &(reinjectInfo->listEntry), gSpinLock);
+	ExAcquireFastMutex(&gListMutex);
+	
+	InsertTailList(&gReinjectListHead, &(reinjectInfo->listEntry));
+	
+	ExReleaseFastMutex(&gListMutex);
 	
 	status = FwpsPendOperation0(
 			inMetaValues->completionHandle,
@@ -366,7 +418,8 @@ VOID NTAPI ClassifyFn1(
 void printDataFromNetBufferList(NET_BUFFER_LIST *netBufferList) {
 	NET_BUFFER *netBuffer;
 	PVOID packetBuf, Ppacket = NULL;
-	int i;
+	PUCHAR printPacket;
+	UINT packetByteCount, i;
 	
 	netBuffer = NET_BUFFER_LIST_FIRST_NB(netBufferList);
 	
@@ -381,34 +434,37 @@ void printDataFromNetBufferList(NET_BUFFER_LIST *netBufferList) {
 					  0);
 					  
 	if (Ppacket == NULL) {
-		packet = packetBuf;
+		printPacket = packetBuf;
 	} else {
-		packet = Ppacket;
+		printPacket = Ppacket;
 	}	
 
 	for (i = 0; i < packetByteCount; i++) {
-		DbgPrint("%0x ", packet[i]);
+		DbgPrint("%0x ", printPacket[i]);
 	}
 	DbgPrint("\n");
 }
 
-void completeClassificationOfPacket(CHAR firstChar) {
+void completeClassificationOfPacket(
+	ICMP_V6_REINJECT_INFO *pReinjectInfo,
+	UCHAR action) 
+{	
 
-	switch(firstChar) {
+	switch(action) {
 	
 	case 'P': 
 		DbgPrint("Packet classified as 'Permit'.\n");
-		completeOperationAndReinjectPacket();
+		completeOperationAndReinjectPacket(pReinjectInfo);
 		break;
 
 	case 'B':
 		DbgPrint("Packet classified as 'Block'.\n");
-		FwpsCompleteOperation0(gReinjectInfo->aleCompletionContext, NULL);
+		FwpsCompleteOperation0(pReinjectInfo->aleCompletionContext, NULL);
 		break;	
 		
 	default:
 		DbgPrint("Packet classified as 'Block' per default.\n");
-		FwpsCompleteOperation0(gReinjectInfo->aleCompletionContext, NULL);
+		FwpsCompleteOperation0(pReinjectInfo->aleCompletionContext, NULL);
 		break;	
 		
 	}
@@ -417,27 +473,27 @@ void completeClassificationOfPacket(CHAR firstChar) {
 	
 }
 
-VOID completeOperationAndReinjectPacket() {
+VOID completeOperationAndReinjectPacket(ICMP_V6_REINJECT_INFO *pReinjectInfo) {
 	
-	NTSTATUS status;
+	NTSTATUS status = NULL;
 	
 	DbgPrint("Injecting Net Buffer List:\n");
-	printDataFromNetBufferList(gReinjectInfo->netBufferList);
+	printDataFromNetBufferList(pReinjectInfo->netBufferList);
 
-	FwpsCompleteOperation0(gReinjectInfo->aleCompletionContext, gReinjectInfo->netBufferList);
+	FwpsCompleteOperation0(pReinjectInfo->aleCompletionContext, pReinjectInfo->netBufferList);
 	
-	status = FwpsInjectTransportReceiveAsync0(
-			gReinjectInfo->injectionHandle,
+	 status = FwpsInjectTransportReceiveAsync0(
+			pReinjectInfo->injectionHandle,
 			NULL,
 		    0,
 			0,
 			AF_INET6,
-			gReinjectInfo->compartmentId,
-			gReinjectInfo->interfaceIndex,
-			gReinjectInfo->subInterfaceIndex,
-			gReinjectInfo->netBufferList,
+			pReinjectInfo->compartmentId,
+			pReinjectInfo->interfaceIndex,
+			pReinjectInfo->subInterfaceIndex,
+			pReinjectInfo->netBufferList,
 			completionFn,
-			gReinjectInfo);
+			pReinjectInfo);
 			
 	switch (status) {
 	case STATUS_SUCCESS:
@@ -460,9 +516,15 @@ VOID NTAPI completionFn(
 	NET_BUFFER_LIST *netBufferList,
 	BOOLEAN dispatchLevel) 
 {
-	ICMP_V6_REINJECT_INFO *reinjectInfo = (ICMP_V6_REINJECT_INFO *) context;
+	ICMP_V6_REINJECT_INFO *pReinjectInfo = (ICMP_V6_REINJECT_INFO *) context;
 	
-	ExFreePoolWithTag(reinjectInfo, "denS");
+	ExAcquireFastMutex(&gListMutex);
+	
+	RemoveEntryList(&(pReinjectInfo->listEntry));
+	
+	ExReleaseFastMutex(&gListMutex);
+
+	ExFreePoolWithTag(pReinjectInfo, "denS");
 	
 	switch (netBufferList->Status) {
 	case NDIS_STATUS_SUCCESS:
