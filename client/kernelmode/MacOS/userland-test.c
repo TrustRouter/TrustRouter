@@ -42,11 +42,12 @@ int main() {
     addr.ss_sysaddr = AF_SYS_CONTROL;
     struct ctl_info info;
     bzero(&info, sizeof(info));
-    strncpy(info.ctl_name, "de.m-goderbauer.kext.trustrouter", sizeof(info.ctl_name));
+    strncpy(info.ctl_name, "org.trustrouter.kext", sizeof(info.ctl_name));
     if (ioctl(fd, CTLIOCGINFO, &info)) {
         printf("Could not get ID for kernel control.\n");
         exit(-1);
     }
+    printf("id: %u\n", info.ctl_id);
     addr.sc_id = info.ctl_id;
     addr.sc_unit = 0;
 

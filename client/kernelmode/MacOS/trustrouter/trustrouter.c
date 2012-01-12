@@ -21,14 +21,14 @@
 
 #include "trustrouter.h"
 
-#define BUNDLENAME "de.m-goderbauer.kext.trustrouter"
+#define BUNDLENAME "org.trustrouter.kext"
 
-ipfilter_t installed_filter;
-kern_ctl_ref ctlref;
-u_int32_t ctrl_unit = 0;
+static ipfilter_t installed_filter;
+static kern_ctl_ref ctlref;
+static u_int32_t ctrl_unit = 0;
 
-lck_grp_t *lck_grp;
-lck_mtx_t *packet_queue_mtx;
+static lck_grp_t *lck_grp;
+static lck_mtx_t *packet_queue_mtx;
 static struct packet_queue packet_queue;
 
 kern_return_t trustrouter_start(kmod_info_t * ki, void *d) {
@@ -41,7 +41,6 @@ kern_return_t trustrouter_start(kmod_info_t * ki, void *d) {
     filter.ipf_input = &input_fn;
     
     if (ipf_addv6(&filter, &installed_filter) != 0) {
-        //TODO: What to do?
         return KERN_FAILURE;
     }
     
@@ -54,19 +53,19 @@ kern_return_t trustrouter_start(kmod_info_t * ki, void *d) {
     userctl.ctl_disconnect = &ctl_disconnect_fn;
     
     if (ctl_register(&userctl, &ctlref) != 0) {
-        //TODO: What to do?
+        //TODO: Clean-up? (e. g. unregister filter)
         return KERN_FAILURE;
     }
     
     TAILQ_INIT(&packet_queue);
     lck_grp = lck_grp_alloc_init(BUNDLENAME, LCK_GRP_ATTR_NULL);
     if (lck_grp == NULL) {
-        //TODO: What to do?
+        //TODO: Clean-up?
         return KERN_FAILURE;
     }
     packet_queue_mtx = lck_mtx_alloc_init(lck_grp, LCK_ATTR_NULL);
     if (packet_queue_mtx == NULL) {
-        //TODO: What to do?
+        //TODO: Clean-up?
         return KERN_FAILURE;
     }
     
@@ -77,8 +76,10 @@ kern_return_t trustrouter_start(kmod_info_t * ki, void *d) {
 kern_return_t trustrouter_stop(kmod_info_t *ki, void *d) {
     printf("[TrustRouter] Unloadeding kext...\n");
     
+    //TODO: Check errorcode
     ipf_remove(installed_filter);
     
+    //TODO: Check errorcode
     ctl_deregister(ctlref);
     
     struct pktQueueItem *item;
@@ -98,14 +99,13 @@ kern_return_t trustrouter_stop(kmod_info_t *ki, void *d) {
     return KERN_SUCCESS;
 }
 
-errno_t input_fn(void *cookie, mbuf_t *data, int offset, u_int8_t protocol) {
+static errno_t input_fn(void *cookie, mbuf_t *data, int offset, u_int8_t protocol) {
     if (protocol != IPPROTO_ICMPV6) {
         return ACCEPT;
     }
     
     u_int8_t icmp_type;
     if (mbuf_copydata(*data, offset, sizeof(icmp_type), &icmp_type) != 0) {
-        //TODO: What to do?
         return REJECT;
     }
     
@@ -117,7 +117,12 @@ errno_t input_fn(void *cookie, mbuf_t *data, int offset, u_int8_t protocol) {
     
     struct pktQueueItem *item = _MALLOC(sizeof(struct pktQueueItem), M_TEMP, M_WAITOK);
     item->packet = _MALLOC(sizeof(mbuf_t), M_TEMP, M_WAITOK);
-    mbuf_dup(*data, MBUF_WAITOK, item->packet);
+    
+    if (mbuf_dup(*data, MBUF_WAITOK, item->packet) != 0) {
+        _FREE(item->packet, M_TEMP);
+        _FREE(item, M_TEMP);
+        return REJECT;
+    }
     
     lck_mtx_lock(packet_queue_mtx);
     TAILQ_INSERT_TAIL(&packet_queue, item, entries);
@@ -125,10 +130,10 @@ errno_t input_fn(void *cookie, mbuf_t *data, int offset, u_int8_t protocol) {
     
     void *packet_id = item->packet;
     mbuf_t usermode_mbuf;
-    mbuf_dup(*data, MBUF_WAITOK, &usermode_mbuf);
     
     // Send packet id followed by packet
-    if (ctl_enqueuedata(ctlref, ctrl_unit, &packet_id, sizeof(packet_id), 0) != 0 ||
+    if (mbuf_dup(*data, MBUF_WAITOK, &usermode_mbuf) != 0 ||
+        ctl_enqueuedata(ctlref, ctrl_unit, &packet_id, sizeof(packet_id), 0) != 0 ||
         ctl_enqueuembuf(ctlref, ctrl_unit, usermode_mbuf, 0) != 0) {
         
         printf("[TrustRouter] Could not send to userspace\n");
@@ -140,7 +145,6 @@ errno_t input_fn(void *cookie, mbuf_t *data, int offset, u_int8_t protocol) {
         mbuf_freem(*item->packet);
         _FREE(item, M_TEMP);
         
-        //TODO: What to do?
         return REJECT;
     }
     
@@ -148,7 +152,7 @@ errno_t input_fn(void *cookie, mbuf_t *data, int offset, u_int8_t protocol) {
     return REJECT;
 }
 
-errno_t ctl_connect_fn(kern_ctl_ref kctlref, struct sockaddr_ctl *sac, void **unitinfo) {
+static errno_t ctl_connect_fn(kern_ctl_ref kctlref, struct sockaddr_ctl *sac, void **unitinfo) {
     if (ctrl_unit == 0) {
         ctrl_unit = sac->sc_unit;
         printf("[TrustRouter] Connected\n");
@@ -157,7 +161,7 @@ errno_t ctl_connect_fn(kern_ctl_ref kctlref, struct sockaddr_ctl *sac, void **un
     return -1;
 }
 
-errno_t ctl_disconnect_fn(kern_ctl_ref kctlref, u_int32_t unit, void *unitinfo) {
+static errno_t ctl_disconnect_fn(kern_ctl_ref kctlref, u_int32_t unit, void *unitinfo) {
     if (unit == ctrl_unit) {
         ctrl_unit = 0;
         printf("[TrustRouter] Disconnected\n");
@@ -167,10 +171,9 @@ errno_t ctl_disconnect_fn(kern_ctl_ref kctlref, u_int32_t unit, void *unitinfo) 
 }
 
 
-errno_t ctl_send_fn(kern_ctl_ref kctlref, u_int32_t unit, void *unitinfo, mbuf_t m, int flags) {
+static errno_t ctl_send_fn(kern_ctl_ref kctlref, u_int32_t unit, void *unitinfo, mbuf_t m, int flags) {
     struct result result;
     if (mbuf_copydata(m, 0, sizeof(result), &result)  != 0) {
-        //TODO: What to do?
         return -1;
     }
     
