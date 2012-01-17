@@ -1,0 +1,51 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            e8:59:60:b9:d0:ea:b0:04
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: CN=ROUTER3
+        Validity
+            Not Before: Dec 14 13:55:07 2011 GMT
+            Not After : Jul  1 13:55:07 2012 GMT
+        Subject: CN=ROUTER3
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (512 bit)
+                Modulus:
+                    00:95:b8:95:e0:df:a2:08:85:6f:6a:2e:05:e8:d4:
+                    b8:6c:08:9e:08:8c:f2:6e:59:fc:43:33:1e:91:b8:
+                    91:ba:20:5a:fe:fe:10:fc:1e:3b:d3:cd:a5:36:33:
+                    bd:2c:f4:28:10:69:4a:bf:13:2d:bf:f1:ba:40:bb:
+                    e4:42:c7:c1:8f
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Subject Key Identifier: 
+                B4:ED:78:AD:09:62:08:E4:34:C5:58:BA:80:77:2A:AD:28:AE:5C:6E
+            X509v3 Authority Key Identifier: 
+                keyid:B4:ED:78:AD:09:62:08:E4:34:C5:58:BA:80:77:2A:AD:28:AE:5C:6E
+
+            X509v3 Basic Constraints: critical
+                CA:TRUE
+            X509v3 Key Usage: critical
+                Digital Signature, Certificate Sign, CRL Sign
+            sbgp-ipAddrBlock: critical
+                IPv6:
+                  2001:638:807:21d::/64
+
+    Signature Algorithm: sha256WithRSAEncryption
+        7f:42:e5:a8:53:aa:09:9d:42:46:be:c0:ad:06:b3:4e:d6:85:
+        7e:e9:b6:72:db:63:c2:fd:c0:be:b6:fd:f3:09:f3:bc:2f:64:
+        8c:54:07:b4:ed:05:86:84:f6:b6:03:81:81:62:a2:51:3e:14:
+        06:c2:52:b8:fd:12:5f:65:38:7f
+-----BEGIN CERTIFICATE-----
+MIIBqDCCAVKgAwIBAgIJAOhZYLnQ6rAEMA0GCSqGSIb3DQEBCwUAMBIxEDAOBgNV
+BAMMB1JPVVRFUjMwHhcNMTExMjE0MTM1NTA3WhcNMTIwNzAxMTM1NTA3WjASMRAw
+DgYDVQQDDAdST1VURVIzMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAJW4leDfogiF
+b2ouBejUuGwIngiM8m5Z/EMzHpG4kbogWv7+EPweO9PNpTYzvSz0KBBpSr8TLb/x
+ukC75ELHwY8CAwEAAaOBijCBhzAdBgNVHQ4EFgQUtO14rQliCOQ0xVi6gHcqrSiu
+XG4wHwYDVR0jBBgwFoAUtO14rQliCOQ0xVi6gHcqrSiuXG4wDwYDVR0TAQH/BAUw
+AwEB/zAOBgNVHQ8BAf8EBAMCAYYwJAYIKwYBBQUHAQcBAf8EFTATMBEEAgACMAsD
+CQAgAQY4CAcCHTANBgkqhkiG9w0BAQsFAANBAH9C5ahTqgmdQka+wK0Gs07WhX7p
+tnLbY8L9wL62/fMJ87wvZIxUB7TtBYaE9rYDgYFiolE+FAbCUrj9El9lOH8=
+-----END CERTIFICATE-----
