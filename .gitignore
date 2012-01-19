@@ -1,4 +1,6 @@
 *.out
+*.kext
+__pycache__
 
 # Mac OS X
 .DS_Store*
