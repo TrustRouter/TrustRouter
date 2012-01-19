@@ -10,6 +10,23 @@ UINT64 FilterId;
 PDEVICE_OBJECT pDeviceObject;
 HANDLE EngineHandle;
 
+typedef struct ICMP_V6_REINJECT_INFO {
+	NET_BUFFER_LIST *netBufferList;
+	ADDRESS_FAMILY af;
+	COMPARTMENT_ID compartmentId;
+	IF_INDEX interfaceIndex;
+	IF_INDEX subInterfaceIndex;
+	HANDLE aleCompletionContext;
+	HANDLE injectionHandle;
+	LIST_ENTRY listEntry;   
+	BOOLEAN hasBeenRead;
+} ICMP_V6_REINJECT_INFO;
+
+typedef struct USER_MODE_CLASSIFICATION_RESULT {
+	ICMP_V6_REINJECT_INFO *pReinjectInfo;
+	CHAR action;
+} USER_MODE_CLASSIFICATION_RESULT;
+
 
 VOID NTAPI ClassifyFn1(
     IN const FWPS_INCOMING_VALUES0  *inFixedValues,
@@ -29,9 +46,22 @@ VOID NTAPI FlowDeleteFn(
     IN UINT16  layerId,
     IN UINT32  calloutId,
     IN UINT64  flowContext);
+		
+VOID NTAPI completionFn(
+	IN VOID *context,
+	IN OUT NET_BUFFER_LIST *netBufferList,
+	IN BOOLEAN dispatchLevel);
 	
 VOID InitializeFilter();
-VOID completeClassificationOfPacket(CHAR firstChar);
+
+VOID completeClassificationOfPacket(
+	ICMP_V6_REINJECT_INFO *pReinjectInfo,
+	UCHAR action);
+	
+VOID completeOperationAndReinjectPacket(
+	ICMP_V6_REINJECT_INFO *pReinjectInfo);
+	
+void printDataFromNetBufferList(NET_BUFFER_LIST *netBufferList);
 	
 NTSTATUS SendCalloutCreate(PDEVICE_OBJECT pDeviceObject, PIRP Irp);
 NTSTATUS SendCalloutWrite(PDEVICE_OBJECT pDeviceObject, PIRP Irp);
