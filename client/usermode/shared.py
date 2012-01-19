@@ -3,7 +3,7 @@ from packet import IPv6, ICMPv6_NDP_RSASignature
 
 # see RFC 3971
 CGA_MESSAGE_TYPE_TAG = b"\x08\x6F\xCA\x5E\x10\xB2\x00\xC9\x9C\x8C\xE0\x01\x64\x27\x7C\x08"
-
+CERT_PATH = './test/example_data/router0/router0.cer'
 
 class Shared(object):
 
@@ -26,10 +26,9 @@ class Shared(object):
             accept_callback()
             return
 
-# Security module does not work yet
-        # if security.verify_signature(cert, signed_data, rsa_option["digital_signature"]):
-        #     print("Valid signature --> accept")
-        #     accept_callback()
-        # else:
-        #     print("Invalid Signature --> reject")
-        #     reject_callback()
+        if security.verify_signature(CERT_PATH, signed_data, rsa_option["digital_signature"]):
+            print("Valid signature --> accept")
+            accept_callback()
+        else:
+            print("Invalid Signature --> reject")
+            reject_callback()
