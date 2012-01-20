@@ -11,14 +11,34 @@ module_path = os.path.abspath(__file__)
 module_directory = os.path.split(module_path)[0]
 lib_directory = module_directory + "/security/lib/"
 
-if platform.system() == "Windows" and os.path.isfile(lib_directory + "libsecurity.1.1.dll"):
-    libsecurity = CDLL(lib_directory + "libsecurity.1.1.dll")
-elif platform.system() == "Darwin" and os.path.isfile(lib_directory + "libsecurity.1.1.dylib"):
-    libsecurity = CDLL(lib_directory + "libsecurity.1.1.dylib")
-elif platform.system() == "Linux" and os.path.isfile(lib_directory + "libsecurity.1.1.so"):
-    libsecurity = CDLL(lib_directory + "libsecurity.1.1.so")
+# platform-switch only for repository/developing
+system = platform.system()
+
+if system == "Windows":
+    lib_directory += "Win/"
+    lib_name = "libsecurity.dll"
+elif system == "Darwin":
+    lib_directory += "MacOS/"
+    lib_name = "libsecurity.dylib"
+elif system == "Linux":
+    lib_directory += "Linux/"
+    lib_name = "libsecurity.so"
 else:
-    raise Exception("Unable to load security library.")
+    raise Exception("Unable to load security library. System: %s\n", system)
+
+machine = platform.machine().lower()
+
+if "64" in machine:
+    lib_directory += "x64/"
+elif "32" in machine or "86" in machine:
+    lib_directory += "ia32/"
+else:
+    raise Exception("Unable to load security library. Machine: %s\n", machine)
+
+if not os.path.isfile(lib_directory + lib_name):
+    raise Exception("Unable to load security library. Path: %s\n", lib_directory + lib_name)
+
+libsecurity = CDLL(lib_directory + lib_name)
 
 _verify_from_path = libsecurity.verify_cert_from_path
 _verify_from_path.argtypes = [c_char_p, c_char_p, c_char_p]
@@ -33,6 +53,8 @@ def _format_to_bytes(string):
         return string
     else:
         return bytes(string.encode(sys.stdin.encoding))
+
+# sha1-hash, verfiy_signature(certPath, signed_data, signature)
 
 def has_signed(cert, signed_data, data):
     cert_file_tuple = tempfile.mkstemp()
