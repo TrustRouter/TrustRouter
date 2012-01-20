@@ -12,6 +12,10 @@ ICMPv6_NDP_OPTIONS = {
     12 : "ICMPv6_NDP_RSASignature"
 }
 
+# On Windows, we cannot use socket.IPPROTO_ICMPV6 because it's not
+# included in Python, see http://bugs.python.org/issue6926    
+IPPROTO_ICMPV6 = 58
+
 class AbstractPacket(object):
     def parse(self, binary):
         bit_offset = 0
@@ -24,6 +28,7 @@ class AbstractPacket(object):
 
 
 class IPv6(AbstractPacket):
+
     def __init__(self, binary):
         self.fields = OrderedDict([
             ("version", BitField(4)),
@@ -43,7 +48,7 @@ class IPv6(AbstractPacket):
         
     def get_payload_class(self, binary):
         next_header = self["next_header"]
-        if next_header == socket.IPPROTO_ICMPV6:
+        if next_header == IPPROTO_ICMPV6:
             icmp_type = binary[0]
             try:
                 return globals()[ICMPv6_TYPES[icmp_type]]
