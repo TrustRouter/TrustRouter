@@ -15,7 +15,9 @@ def printBytes(b):
 
 s = socket(PF_SYSTEM, SOCK_STREAM, SYSPROTO_CONTROL)
 
-s.connect("org.trustrouter.kext")
+s.connect("org.trustrouter.kext") # s.connect((5, 1))
+
+print("connected to", s.getpeername())
 
 while True:
     id = getBytes(s, struct.calcsize("P"))
@@ -31,7 +33,7 @@ while True:
     result=id
     
     if action == "y":
-        result.extend(struct.pack("P",0))
+        result.extend(struct.pack("P",1))
     else:
-        result.extend(struct.pack("P",-1))
+        result.extend(struct.pack("P",0))
     s.send(result)
