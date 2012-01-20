@@ -30,7 +30,8 @@ class Shared(object):
             reject_callback()
             return
         
-        # recalculated ICMPv6 checksum without RSA option
+        # recalculated checksum without RSA option before signature validation
+        # see http://www.ietf.org/mail-archive/web/cga-ext/current/msg00327.html
         checksummed_data = self._pseudo_header(packet, len(icmp_data))
         # zero out old checksum
         icmp_data[2:4] = b"\x00\x00"
@@ -42,7 +43,9 @@ class Shared(object):
         signed_data.extend(packet["destination_addr"])
         signed_data.extend(icmp_data)        
 
-        if security.verify_signature(CERT_PATH, signed_data, rsa_option["digital_signature"]):
+        if security.verify_signature(CERT_PATH,
+                                     signed_data,
+                                     rsa_option["digital_signature"]):
             print("Valid signature --> accept")
             accept_callback()
         else:
