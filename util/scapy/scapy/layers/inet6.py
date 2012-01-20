@@ -2513,7 +2513,6 @@ uu8LBXAccO/C4DEfZCJKFJZFLLUB84ITgTNaidNKLqUkxXhlAldXI9PpjCuonJOa
 -----END CERTIFICATE-----"""
 
 # SEND Options (RFC 3971)
-#FIXME even if the packet aligns without any padding, 8 padding bits are added
 class ICMPv6NDOptTrustAnchor(Packet):
     name = "SEcure Neighbor Discovery - Trust Anchor Option"
     
@@ -2521,12 +2520,12 @@ class ICMPv6NDOptTrustAnchor(Packet):
                     #length of complete option in units of 8 bytes = 
                     #length of static parts (4) + 
                     #length of dynamic part (l) + 
-                    #length of padding (8-(l+4)%8)
+                    #length of padding (0 if aligned anyway or 8-(l+4)%8 if not aligned)
                     FieldLenField(  "length", 
                                     None, 
                                     length_of = "namefield", 
                                     fmt="B", 
-                                    adjust = lambda pkt,l:(l+4+(8-(l+4)%8))/8),
+                                    adjust = lambda pkt,l:(l+4+(0 if (l+4)%8==0 else 8-(l+4)%8))/8),
                     ByteEnumField("nametype", 1, {1:"DER Encoded X.501 Name", 2:"FQDN"}),
                     #length of padding in bytes =
                     #alignment (8) - (lenght of dynamic part + length of static part) % alignment 
@@ -2534,11 +2533,11 @@ class ICMPv6NDOptTrustAnchor(Packet):
                                     None, 
                                     length_of="namefield", 
                                     fmt="B", 
-                                    adjust=lambda pkt,l:8-(l+4)%8), 
+                                    adjust=lambda pkt,l:0 if (l+4)%8==0 else 8-(l+4)%8), 
                     StrField("namefield", "CN=ripe-ncc-ta"),
                     StrFixedLenField    ("padding",
                                         None,
-                                        length_from=lambda pkt:8-(len(pkt.namefield)+4)%8)
+                                        length_from=lambda pkt: 0 if (len(pkt.namefield)+4)%8==0 else 8-(len(pkt.namefield)+4)%8)
                     ]
                     
 class ICMPv6NDOptCertificate(Packet):
@@ -2553,7 +2552,7 @@ class ICMPv6NDOptCertificate(Packet):
                                     None, 
                                     length_of = "certificate", 
                                     fmt="B", 
-                                    adjust = lambda pkt,l:(l+4+(8-(l+4)%8))/8),
+                                    adjust = lambda pkt,l:(l+4+(0 if (l+4)%8==0 else 8-(l+4)%8))/8),
                     ByteEnumField("certtype", 1, {1:"X.509v3 Certificate"}),
                     #length of padding in bytes =
                     #alignment (8) - (lenght of dynamic part + length of static part) % alignment 
@@ -2564,7 +2563,7 @@ class ICMPv6NDOptCertificate(Packet):
                                 fmt="s"),
                     StrFixedLenField    ("padding",
                                         None,
-                                        length_from=lambda pkt:8-(len(pkt.certificate)+4)%8)
+                                        length_from=lambda pkt:0 if (len(pkt.certificate)+4)%8==0 else 8-(len(pkt.certificate)+4)%8)
                     ]
 
 # SEND Messages (RFC 3971)
