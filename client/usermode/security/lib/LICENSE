@@ -1,4 +1,4 @@
-/* makes use of openssl-libraries and parts adapted from openssl apps/verify.c and apps/rsautl.c */
+/* makes use of openssl-libraries and parts adapted from provided examples*/
 /* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
  * All rights reserved.
  *
