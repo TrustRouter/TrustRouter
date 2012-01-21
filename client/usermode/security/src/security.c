@@ -1,8 +1,5 @@
 // linked against static self-compiled version of openssl-libs with enable-rfc3779 flag
-// gcc -I/usr/local/ssl/include -L. -fPIC -c security.c -lcrypto -lssl -o security.o -arch i386
-// gcc -shared -Wl,-install_name,libsecurity.1.1.dylib -I/usr/local/ssl/include -L. -o libsecurity.1.1.dylib  security.o -arch i386 -lcrypto -lssl
 
-/* parts adapted from openssl apps/verify.c and apps/rsautl.c */
 /* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
  * All rights reserved.
  *
@@ -66,21 +63,23 @@ static X509 *load_cert(const char *file);
 static int check(X509_STORE *ctx, const char *file, STACK_OF(X509) *uchain);
 static STACK_OF(X509) *load_untrusted(const char *file);
 
-int rsa_signed_with_cert(const char* certfile, const char* sigfile, const char* unencrypted, const int unencrypted_length)
+int verify_signature(const char* certfile, unsigned char* signature, const unsigned char* signed_data, const unsigned int signed_data_length)
 {
-
-    BIO *in = NULL, *out = NULL;
     X509 *cert;
     EVP_PKEY *pkey = NULL;
     RSA *rsa = NULL;
-    unsigned char *rsa_in = NULL, *rsa_out = NULL, pad;
-    int rsa_inlen, rsa_outlen = 0;
     int keysize;
     int ret = 0;
+    const EVP_MD *digest_algorithm;
+    EVP_MD_CTX ctx;
+    unsigned char digest[EVP_MAX_MD_SIZE];
+    int digest_length;
+    int rsa_out_length;
+    unsigned char *rsa_out = NULL;
 
     ERR_load_crypto_strings();
     OpenSSL_add_all_algorithms();
-    pad = RSA_PKCS1_PADDING;
+    OpenSSL_add_all_digests();
 
     cert = load_cert(certfile);
     if(cert) {
@@ -95,77 +94,39 @@ int rsa_signed_with_cert(const char* certfile, const char* sigfile, const char* 
     
     rsa = EVP_PKEY_get1_RSA(pkey);
     EVP_PKEY_free(pkey);
-
     if(!rsa) {
         RSA_free(rsa);
-        BIO_free(in);
-        BIO_free_all(out);
-        if(rsa_in) OPENSSL_free(rsa_in);
-        if(rsa_out) OPENSSL_free(rsa_out);
         ret = -1;
         return ret;
-    }
-
-    if(!(in = BIO_new_file(sigfile, "rb"))) {
-        RSA_free(rsa);
-        BIO_free(in);
-        BIO_free_all(out);
-        if(rsa_in) OPENSSL_free(rsa_in);
-        if(rsa_out) OPENSSL_free(rsa_out);
-        ret = -1;
-        return ret;     
     }
 
     keysize = RSA_size(rsa);
-    rsa_in = OPENSSL_malloc(keysize * 2);
+    digest_algorithm = EVP_sha1();
+    EVP_DigestInit(&ctx, digest_algorithm);
+    EVP_DigestUpdate(&ctx, signed_data, signed_data_length);
+    EVP_DigestFinal_ex(&ctx, digest, &digest_length);
+
     rsa_out = OPENSSL_malloc(keysize);
-    pad = RSA_PKCS1_PADDING;
-
-    /* Read the input data */
-    rsa_inlen = BIO_read(in, rsa_in, keysize * 2);
-    if(rsa_inlen <= 0) {
-        ret = -1;
-        return ret;
-    }
-
-    rsa_outlen  = RSA_public_decrypt(rsa_inlen, rsa_in, rsa_out, rsa, pad);
-
-    if (rsa_outlen <= 0) {
-        RSA_free(rsa);
-        BIO_free(in);
-        BIO_free_all(out);
-        if(rsa_in) OPENSSL_free(rsa_in);
-        if(rsa_out) OPENSSL_free(rsa_out);
+    rsa_out_length = RSA_public_decrypt(keysize,signature,rsa_out,rsa,RSA_PKCS1_PADDING);
+    
+    if (rsa_out_length != digest_length) {
         ret = 0;
-        return ret;
+    } else {
+        ret = 1;
+        int i;
+        for (i = 0; i < rsa_out_length; i++) {
+            if (rsa_out[i] != digest[i]) {
+                ret = 0;
+            }
+        }        
     }
-
-    if (rsa_outlen != unencrypted_length) {
-        RSA_free(rsa);
-        BIO_free(in);
-        BIO_free_all(out);
-        if(rsa_in) OPENSSL_free(rsa_in);
-        if(rsa_out) OPENSSL_free(rsa_out);
-        ret = 0;
-        return ret;
-    }
-
-    ret = 1;
-    int i;
-    for (i = 0; i < rsa_outlen; i++) {
-        if (rsa_out[i] != unencrypted[i]) {
-            ret = 0;
-        }
-    }
-    RSA_free(rsa);
-    BIO_free(in);
-    BIO_free_all(out);
-    if(rsa_in) OPENSSL_free(rsa_in);
     if(rsa_out) OPENSSL_free(rsa_out);
+    RSA_free(rsa);
+
     return ret;
 }
 
-int verify_cert_from_path(const char* CAfile, const char* certfile, const char* untrusted_certsfile)
+int verify_cert(const char* CAfile, const char* certfile, const char* untrusted_certsfile)
 {
     // printf("cert: %s\t untrusted: %s\t CA: %s\n", certfile, untrusted_certsfile, CAfile);
     int ret = 0;

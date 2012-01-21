@@ -1,4 +1,5 @@
-/* makes use of openssl-libraries and parts adapted from provided examples*/
+/* this directory holds pre-compiled static libraries with enable-rfc3779
+* used to compile the libsecurity */
 /* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
  * All rights reserved.
  *

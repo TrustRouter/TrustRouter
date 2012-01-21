@@ -11,10 +11,8 @@ module_directory = os.path.split(module_path)[0]
 upper_directory = os.path.split(module_directory)[0]
 sys.path.insert(0, upper_directory)
 
-from security import is_valid_chain, is_valid_chain_from_path
-from security import has_signed, has_signed_from_path
-from security import _verify_cert_from_path, _verify_cert
-from security import _signed_from_path_with_cert_from_path, _signed_with_cert_from_path
+from security import verify_cert, _verify_cert
+from security import verify_signature, _verify_signature
 
 data_directory = module_directory + "/example_data/"
 
@@ -28,15 +26,20 @@ router1 = data_directory + "router1_correct/router1.cer"
 router2 = data_directory + "router2_faulty_range/router2.cer"
 router3 = data_directory + "router3_faulty_selfsigned/router3.cer"
 
-data_path = data_directory + "router1_correct/testdata_raw"
-signed_data_path = data_directory + "router1_correct/testdata_signed"
-
-fh = open(data_path, "rb")
-data = fh.read()
-fh.close()
+signed_data_path = data_directory + "router1_correct/testdata_raw"
+signature_path = data_directory + "router1_correct/testdata_signed"
+hashed_data_path = data_directory + "router1_correct/testdata_hashed"
 
 fh = open(signed_data_path, "rb")
 signed_data = fh.read()
+fh.close()
+
+fh = open(signature_path, "rb")
+signature = fh.read()
+fh.close()
+
+fh = open(hashed_data_path, "rb")
+hashed_data = fh.read()
 fh.close()
 
 fh = open(ripe_o, "r")
@@ -71,69 +74,21 @@ fh = open(router3, "r")
 router3_data = fh.read()
 fh.close()
 
-def test_verify_cert_from_path():
-    assert _verify_cert_from_path(ripe_o, None, dfn_o) == 1
-    assert _verify_cert_from_path(ripe_o, dfn_o, uni_o) == 1
-    assert _verify_cert_from_path(ripe_o, None, uni_o) == 0
-    assert _verify_cert_from_path(ripe_o, dfn_uni_hpi_o, router1) == 1
-    assert _verify_cert_from_path(ripe_o, dfn_uni_hpi_o, router2) == 0
-    assert _verify_cert_from_path(ripe_o, dfn_uni_hpi_o, router3) == 0
-
 def test_verify_cert():
-    assert _verify_cert(ripe_o_data, [], dfn_o_data) == 1
-    assert _verify_cert(ripe_o_data, [dfn_o_data], uni_o_data) == 1
-    assert _verify_cert(ripe_o_data, [], uni_o_data) == 0
-    assert _verify_cert(ripe_o_data, [dfn_uni_hpi_o_data], router1_data) == 1
-    assert _verify_cert(ripe_o_data, [dfn_o_data,uni_o_data,hpi_o_data], router1_data) == 1
-    assert _verify_cert(ripe_o_data, [dfn_uni_hpi_o_data], router2_data) == 0
-    assert _verify_cert(ripe_o_data, [dfn_uni_hpi_o_data], router3_data) == 0
+    assert verify_cert(ripe_o, None, dfn_o) == True
+    assert verify_cert(ripe_o, dfn_o, uni_o) == True
+    assert verify_cert(ripe_o, None, uni_o) == False
+    assert verify_cert(ripe_o, dfn_uni_hpi_o, router1) == True
+    assert verify_cert(ripe_o, dfn_uni_hpi_o, router2) == False
+    assert verify_cert(ripe_o, dfn_uni_hpi_o, router3) == False
 
-def test_valid_chain():
-    assert is_valid_chain(ripe_o_data, [], dfn_o_data) == True
-    assert is_valid_chain(ripe_o_data, [dfn_o_data], uni_o_data) == True
-    assert is_valid_chain(ripe_o_data, [], uni_o_data) == False
-    assert is_valid_chain(ripe_o_data, [dfn_uni_hpi_o_data], router1_data) == True
-    assert is_valid_chain(ripe_o_data, [dfn_o_data,uni_o_data,hpi_o_data], router1_data) == True
-    assert is_valid_chain(ripe_o_data, [dfn_uni_hpi_o_data], router2_data) == False
-    assert is_valid_chain(ripe_o_data, [dfn_uni_hpi_o_data], router3_data) == False
-
-def test_valid_chain_from_path():
-    assert is_valid_chain_from_path(ripe_o, None, dfn_o) == True
-    assert is_valid_chain_from_path(ripe_o, dfn_o, uni_o) == True
-    assert is_valid_chain_from_path(ripe_o, None, uni_o) == False
-    assert is_valid_chain_from_path(ripe_o, dfn_uni_hpi_o, router1) == True
-    assert is_valid_chain_from_path(ripe_o, dfn_uni_hpi_o, router2) == False
-    assert is_valid_chain_from_path(ripe_o, dfn_uni_hpi_o, router3) == False
-
-def test_signed_from_path_with_cert_from_path():
-    assert _signed_from_path_with_cert_from_path(router1, signed_data_path, data) == 1
-    assert _signed_from_path_with_cert_from_path(router2, signed_data_path, data) == 0
-    assert _signed_from_path_with_cert_from_path(router3, signed_data_path, data) == 0
-
-def test_signed_with_cert_from_path():
-    assert _signed_with_cert_from_path(router1, signed_data, data) == 1
-    assert _signed_with_cert_from_path(router2, signed_data, data) == 0
-    assert _signed_with_cert_from_path(router3, signed_data, data) == 0
-
-def test_has_signed():
-    assert has_signed(router1_data, signed_data, data) == True
-    assert has_signed(router2_data, signed_data, data) == False
-    assert has_signed(router3_data, signed_data, data) == False
-
-
-def test_has_signed_from_path():
-    assert has_signed_from_path(router1, signed_data, data) == True
-    assert has_signed_from_path(router2, signed_data, data) == False
-    assert has_signed_from_path(router3, signed_data, data) == False
+def test_verify_signature():
+    assert verify_signature(router1, signed_data, signature) == True
+    assert verify_signature(router2, signed_data, signature) == False
+    assert verify_signature(router3, signed_data, signature) == False
 
 
 def run_tests():
-    test_verify_cert_from_path()
     test_verify_cert()
-    test_valid_chain()
-    test_valid_chain_from_path()
-    test_signed_from_path_with_cert_from_path()
-    test_signed_with_cert_from_path()
-    test_has_signed_from_path()
-    test_has_signed()
+    test_verify_signature()
 
