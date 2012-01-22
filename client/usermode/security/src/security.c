@@ -77,7 +77,6 @@ int verify_signature(const char* certfile, unsigned char* signature, const unsig
     int rsa_out_length;
     unsigned char *rsa_out = NULL;
 
-    ERR_load_crypto_strings();
     OpenSSL_add_all_algorithms();
     OpenSSL_add_all_digests();
 
@@ -86,12 +85,12 @@ int verify_signature(const char* certfile, unsigned char* signature, const unsig
         pkey = X509_get_pubkey(cert);
         X509_free(cert);
     }
-
+    
     if(!pkey) {
         ret = -1;
         return ret;
     }
-    
+
     rsa = EVP_PKEY_get1_RSA(pkey);
     EVP_PKEY_free(pkey);
     if(!rsa) {
@@ -102,20 +101,32 @@ int verify_signature(const char* certfile, unsigned char* signature, const unsig
 
     keysize = RSA_size(rsa);
     digest_algorithm = EVP_sha1();
-    EVP_DigestInit(&ctx, digest_algorithm);
+    EVP_MD_CTX_init(&ctx);
+    EVP_DigestInit_ex(&ctx, digest_algorithm, NULL);
     EVP_DigestUpdate(&ctx, signed_data, signed_data_length);
     EVP_DigestFinal_ex(&ctx, digest, &digest_length);
+    EVP_MD_CTX_cleanup(&ctx);
 
     rsa_out = OPENSSL_malloc(keysize);
     rsa_out_length = RSA_public_decrypt(keysize,signature,rsa_out,rsa,RSA_PKCS1_PADDING);
-    
-    if (rsa_out_length != digest_length) {
+
+    // defined in rfc3447 EMSA-PKCS1-v1_5-ENCODE
+    const unsigned int sha1_digest_info_length = 15;
+    const char sha1_digest_info[] = {0x30,0x21,0x30,0x09,0x06,0x05,0x2b,0x0e,0x03,0x02,0x1a,0x05,0x00,0x04,0x14};
+
+    if (rsa_out_length != (digest_length + sha1_digest_info_length)) {
         ret = 0;
     } else {
         ret = 1;
         int i;
-        for (i = 0; i < rsa_out_length; i++) {
-            if (rsa_out[i] != digest[i]) {
+
+        for (i = 0; i < sha1_digest_info_length; i++) {
+            if (sha1_digest_info[i] != rsa_out[i]) {
+                ret = 0;
+            }
+        }
+        for (i = sha1_digest_info_length; i < rsa_out_length; i++) {
+            if (rsa_out[i] != digest[i - sha1_digest_info_length]) {
                 ret = 0;
             }
         }        

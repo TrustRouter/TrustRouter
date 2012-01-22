@@ -22,24 +22,20 @@ uni_o = data_directory + "uni_potsdam/uni_potsdam.cer"
 hpi_o = data_directory + "hpi/hpi.cer"
 dfn_uni_hpi_o = data_directory + "dfn+uni_potsdam+hpi.cer"
 
+router0 = data_directory + "router0/router0.cer"
 router1 = data_directory + "router1_correct/router1.cer"
 router2 = data_directory + "router2_faulty_range/router2.cer"
 router3 = data_directory + "router3_faulty_selfsigned/router3.cer"
 
-signed_data_path = data_directory + "router1_correct/testdata_raw"
-signature_path = data_directory + "router1_correct/testdata_signed"
-hashed_data_path = data_directory + "router1_correct/testdata_hashed"
+signed_ra_path = data_directory + "router0/signed_data"
+ra_signature_path = data_directory + "router0/signature"
 
-fh = open(signed_data_path, "rb")
-signed_data = fh.read()
+fh = open(signed_ra_path, "rb")
+signed_ra = fh.read()
 fh.close()
 
-fh = open(signature_path, "rb")
-signature = fh.read()
-fh.close()
-
-fh = open(hashed_data_path, "rb")
-hashed_data = fh.read()
+fh = open(ra_signature_path, "rb")
+ra_signature = fh.read()
 fh.close()
 
 fh = open(ripe_o, "r")
@@ -83,9 +79,10 @@ def test_verify_cert():
     assert verify_cert(ripe_o, dfn_uni_hpi_o, router3) == False
 
 def test_verify_signature():
-    assert verify_signature(router1, signed_data, signature) == True
-    assert verify_signature(router2, signed_data, signature) == False
-    assert verify_signature(router3, signed_data, signature) == False
+    assert verify_signature(router0, signed_ra, ra_signature) == True
+    assert verify_signature(router1, signed_ra, ra_signature) == False
+    assert verify_signature(router2, signed_ra, ra_signature) == False
+    assert verify_signature(router3, signed_ra, ra_signature) == False
 
 
 def run_tests():
