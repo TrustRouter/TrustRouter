@@ -1,5 +1,4 @@
 /*
- *   $Id: radvd.c,v 1.62 2011/06/07 04:53:42 reubenhwk Exp $
  *
  *   Authors:
  *    Pedro Roque		<roque@di.fc.ul.pt>
@@ -39,7 +38,6 @@ char usage_str[] = {
 "  -l, --logfile=PATH     Sets the log file.\n"
 "  -m, --logmethod=X      Sets the log method to one of: syslog, stderr, stderr_syslog, logfile, or none.\n"
 "  -p, --pidfile=PATH     Sets the pid file.\n"
-"  -s, --singleprocess    Use privsep.\n"
 "  -t, --chrootdir=PATH   Chroot to the specified path.\n"
 "  -u, --username=USER    Switch to the specified user.\n"
 "  -n, --nodaemon         Prevent the daemonizing.\n"
@@ -95,20 +93,19 @@ void usage(void);
 int drop_root_privileges(const char *);
 int readin_config(char *);
 int check_conffile_perm(const char *, const char *);
+pid_t strtopid(char const * pidstr);
+void write_pid_file(char const *);
 void main_loop(void);
 
 int
 main(int argc, char *argv[])
 {
-	char pidstr[16];
-	ssize_t ret;
 	int c, log_method;
 	char *logfile, *pidfile;
-	int facility, fd;
+	int facility;
 	char *username = NULL;
 	char *chrootdir = NULL;
 	int configtest = 0;
-	int singleprocess = 0;
 	int daemonize = 1;
 #ifdef HAVE_GETOPT_LONG
 	int opt_idx;
@@ -188,7 +185,7 @@ main(int argc, char *argv[])
 			configtest = 1;
 			break;
 		case 's':
-			singleprocess = 1;
+			fprintf(stderr, "privsep is not optional.  This options will be removed in a near future release.");
 			break;
 		case 'n':
 			daemonize = 0;
@@ -272,47 +269,23 @@ main(int argc, char *argv[])
 		exit(0);
 	}
 
+#ifdef USE_PRIVSEP
+	dlog(LOG_DEBUG, 3, "Initializing privsep");
+	if (privsep_init() < 0) {
+		perror("Failed to initialize privsep.");
+		exit(1);
+	}
+#endif
+
 	/* drop root privileges if requested. */
 	if (username) {
-		if (!singleprocess) {
-		 	dlog(LOG_DEBUG, 3, "Initializing privsep");
-			if (privsep_init() < 0) {
-				perror("Failed to initialize privsep.");
-				exit(1);
-			}
-		}
-
 		if (drop_root_privileges(username) < 0) {
 			perror("drop_root_privileges");
 			exit(1);
 		}
 	}
 
-	if ((fd = open(pidfile, O_RDONLY, 0)) > 0)
-	{
-		ret = read(fd, pidstr, sizeof(pidstr) - 1);
-		if (ret < 0)
-		{
-			flog(LOG_ERR, "cannot read radvd pid file, terminating: %s", strerror(errno));
-			exit(1);
-		}
-		pidstr[ret] = '\0';
-		if (!kill((pid_t)atol(pidstr), 0))
-		{
-			flog(LOG_ERR, "radvd already running, terminating.");
-			exit(1);
-		}
-		close(fd);
-		fd = open(pidfile, O_CREAT|O_TRUNC|O_WRONLY, 0644);
-	}
-	else	/* FIXME: not atomic if pidfile is on an NFS mounted volume */
-		fd = open(pidfile, O_CREAT|O_EXCL|O_WRONLY, 0644);
-
-	if (fd < 0)
-	{
-		flog(LOG_ERR, "cannot create radvd pid file, terminating: %s", strerror(errno));
-		exit(1);
-	}
+	write_pid_file(pidfile);
 
 	/*
 	 * okay, config file is read in, socket and stuff is setup, so
@@ -326,18 +299,6 @@ main(int argc, char *argv[])
 			if (daemon(0, 0) < 0)
 				perror("daemon");
 		}
-
-		/* close old logfiles, including stderr */
-		log_close();
-
-		/* reopen logfiles, but don't log to stderr unless explicitly requested */
-		if (log_method == L_STDERR_SYSLOG)
-			log_method = L_SYSLOG;
-		if (log_open(log_method, pname, logfile, facility) < 0) {
-			perror("log_open");
-			exit(1);
-		}
-
 	}
 
 	/*
@@ -347,6 +308,57 @@ main(int argc, char *argv[])
 	signal(SIGTERM, sigterm_handler);
 	signal(SIGINT, sigint_handler);
 	signal(SIGUSR1, sigusr1_handler);
+
+	config_interface();
+	kickoff_adverts();
+	main_loop();
+	flog(LOG_INFO, "sending stop adverts", pidfile);
+	stop_adverts();
+	flog(LOG_INFO, "removing %s", pidfile);
+	unlink(pidfile);
+
+	return 0;
+}
+
+
+pid_t strtopid(char const * pidstr)
+{
+	return atol(pidstr);
+}
+
+void write_pid_file(char const * pidfile)
+{
+	int fd, ret;
+	char pidstr[32];
+
+	if ((fd = open(pidfile, O_RDONLY, 0)) > 0)
+	{
+		ret = read(fd, pidstr, sizeof(pidstr) - 1);
+		if (ret < 0)
+		{
+			flog(LOG_ERR, "cannot read radvd pid file, terminating: %s", strerror(errno));
+			exit(1);
+		}
+		if (ret > 0) {
+				pid_t pid;
+				pidstr[ret] = '\0';
+				pid = strtopid(pidstr);
+				if (pid > 0 && !kill(pid, 0)) {
+					flog(LOG_ERR, "radvd already running, terminating.");
+					exit(1);
+				}
+		}
+		close(fd);
+		fd = open(pidfile, O_CREAT|O_TRUNC|O_WRONLY, 0644);
+	}
+	else	/* FIXME: not atomic if pidfile is on an NFS mounted volume */
+		fd = open(pidfile, O_CREAT|O_EXCL|O_WRONLY, 0644);
+
+	if (fd < 0)
+	{
+		flog(LOG_ERR, "cannot create radvd pid file, terminating: %s", strerror(errno));
+		exit(1);
+	}
 
 	snprintf(pidstr, sizeof(pidstr), "%ld\n", (long)getpid());
 
@@ -358,14 +370,6 @@ main(int argc, char *argv[])
 	}
 
 	close(fd);
-
-	config_interface();
-	kickoff_adverts();
-	main_loop();
-	stop_adverts();
-	unlink(pidfile);
-
-	return 0;
 }
 
 void main_loop(void)
@@ -441,7 +445,7 @@ void main_loop(void)
 				timer_handler(next);
 		}
 		else if ( rc == -1 ) {
-			flog(LOG_ERR, "poll error: %s", strerror(errno));
+			dlog(LOG_INFO, 3, "poll returned early: %s", strerror(errno));
 		}
 
 		if (sigterm_received || sigint_received) {
@@ -451,12 +455,14 @@ void main_loop(void)
 
 		if (sighup_received)
 		{
+			dlog(LOG_INFO, 3, "sig hup received.\n");
 			reload_config();
 			sighup_received = 0;
 		}
 
 		if (sigusr1_received)
 		{
+			dlog(LOG_INFO, 3, "sig usr1 received.\n");
 			reset_prefix_lifetimes();
 			sigusr1_received = 0;
 		}
@@ -564,12 +570,6 @@ void reload_config(void)
 	struct Interface *iface;
 
 	flog(LOG_INFO, "attempting to reread config file");
-
-	dlog(LOG_DEBUG, 4, "reopening log");
-	if (log_reopen() < 0) {
-		perror("log_reopen");
-		exit(1);
-	}
 
 	iface=IfaceList;
 	while(iface)

@@ -1,4 +1,3 @@
-# $Id: radvd.spec,v 1.31 2011/05/06 14:32:12 reubenhwk Exp $
 
 %define initdir %{_sysconfdir}/rc.d/init.d
 
@@ -6,7 +5,7 @@
 
 Summary: A Router Advertisement daemon
 Name: radvd
-Version: 1.8.3
+Version: 1.8.4
 Release: 1
 # The code includes the advertising clause, so it's GPL-incompatible
 License: BSD with advertising
@@ -97,6 +96,11 @@ exit 0
 %{_sbindir}/radvdump
 
 %changelog
+* Thu Jan 21 2012 Reuben Hawkins <reubenhwk@gmail.com> 1.8.4-1
+- 1.8.4
+- privsep always on
+- minor logging changes
+
 * Fri Oct 14 2011 Reuben Hawkins <reubenhwk@gmail.com> 1.8.3-1
 - 1.8.3
 - minor fixes
