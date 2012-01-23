@@ -1,0 +1,295 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		2745DE6114916D39005285C7 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 2745DE5F14916D39005285C7 /* InfoPlist.strings */; };
+		2745DE6314916D39005285C7 /* trustrouter.c in Sources */ = {isa = PBXBuildFile; fileRef = 2745DE6214916D39005285C7 /* trustrouter.c */; };
+		2745DE6B14916DCF005285C7 /* trustrouter.h in Headers */ = {isa = PBXBuildFile; fileRef = 2745DE6A14916DCF005285C7 /* trustrouter.h */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		2745DE5714916D39005285C7 /* trustrouter.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = trustrouter.kext; sourceTree = BUILT_PRODUCTS_DIR; };
+		2745DE5B14916D39005285C7 /* Kernel.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kernel.framework; path = System/Library/Frameworks/Kernel.framework; sourceTree = SDKROOT; };
+		2745DE5E14916D39005285C7 /* trustrouter-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "trustrouter-Info.plist"; sourceTree = "<group>"; };
+		2745DE6014916D39005285C7 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		2745DE6214916D39005285C7 /* trustrouter.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = trustrouter.c; sourceTree = "<group>"; };
+		2745DE6414916D39005285C7 /* trustrouter-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "trustrouter-Prefix.pch"; sourceTree = "<group>"; };
+		2745DE6A14916DCF005285C7 /* trustrouter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = trustrouter.h; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		2745DE5214916D39005285C7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		2745DE4A14916D38005285C7 = {
+			isa = PBXGroup;
+			children = (
+				2745DE5C14916D39005285C7 /* trustrouter */,
+				2745DE5914916D39005285C7 /* Frameworks */,
+				2745DE5814916D39005285C7 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		2745DE5814916D39005285C7 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2745DE5714916D39005285C7 /* trustrouter.kext */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		2745DE5914916D39005285C7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				2745DE5A14916D39005285C7 /* Other Frameworks */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		2745DE5A14916D39005285C7 /* Other Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				2745DE5B14916D39005285C7 /* Kernel.framework */,
+			);
+			name = "Other Frameworks";
+			sourceTree = "<group>";
+		};
+		2745DE5C14916D39005285C7 /* trustrouter */ = {
+			isa = PBXGroup;
+			children = (
+				2745DE6214916D39005285C7 /* trustrouter.c */,
+				2745DE6A14916DCF005285C7 /* trustrouter.h */,
+				2745DE5D14916D39005285C7 /* Supporting Files */,
+			);
+			path = trustrouter;
+			sourceTree = "<group>";
+		};
+		2745DE5D14916D39005285C7 /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				2745DE5E14916D39005285C7 /* trustrouter-Info.plist */,
+				2745DE5F14916D39005285C7 /* InfoPlist.strings */,
+				2745DE6414916D39005285C7 /* trustrouter-Prefix.pch */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		2745DE5314916D39005285C7 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2745DE6B14916DCF005285C7 /* trustrouter.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		2745DE5614916D39005285C7 /* trustrouter */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2745DE6714916D39005285C7 /* Build configuration list for PBXNativeTarget "trustrouter" */;
+			buildPhases = (
+				2745DE5114916D39005285C7 /* Sources */,
+				2745DE5214916D39005285C7 /* Frameworks */,
+				2745DE5314916D39005285C7 /* Headers */,
+				2745DE5414916D39005285C7 /* Resources */,
+				2745DE5514916D39005285C7 /* Rez */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = trustrouter;
+			productName = trustrouter;
+			productReference = 2745DE5714916D39005285C7 /* trustrouter.kext */;
+			productType = "com.apple.product-type.kernel-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		2745DE4C14916D38005285C7 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0420;
+			};
+			buildConfigurationList = 2745DE4F14916D38005285C7 /* Build configuration list for PBXProject "trustrouter" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 2745DE4A14916D38005285C7;
+			productRefGroup = 2745DE5814916D39005285C7 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				2745DE5614916D39005285C7 /* trustrouter */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		2745DE5414916D39005285C7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2745DE6114916D39005285C7 /* InfoPlist.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXRezBuildPhase section */
+		2745DE5514916D39005285C7 /* Rez */ = {
+			isa = PBXRezBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXRezBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		2745DE5114916D39005285C7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2745DE6314916D39005285C7 /* trustrouter.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		2745DE5F14916D39005285C7 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				2745DE6014916D39005285C7 /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		2745DE6514916D39005285C7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		2745DE6614916D39005285C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_PROTOTYPES = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		2745DE6814916D39005285C7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "trustrouter/trustrouter-Prefix.pch";
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				INFOPLIST_FILE = "trustrouter/trustrouter-Info.plist";
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				MODULE_NAME = "de.m-goderbauer.trustrouter";
+				MODULE_START = trustrouter_start;
+				MODULE_STOP = trustrouter_stop;
+				MODULE_VERSION = 1.0.0d1;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Debug;
+		};
+		2745DE6914916D39005285C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "trustrouter/trustrouter-Prefix.pch";
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				INFOPLIST_FILE = "trustrouter/trustrouter-Info.plist";
+				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
+				MODULE_NAME = "de.m-goderbauer.trustrouter";
+				MODULE_START = trustrouter_start;
+				MODULE_STOP = trustrouter_stop;
+				MODULE_VERSION = 1.0.0d1;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2745DE4F14916D38005285C7 /* Build configuration list for PBXProject "trustrouter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2745DE6514916D39005285C7 /* Debug */,
+				2745DE6614916D39005285C7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		2745DE6714916D39005285C7 /* Build configuration list for PBXNativeTarget "trustrouter" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2745DE6814916D39005285C7 /* Debug */,
+				2745DE6914916D39005285C7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 2745DE4C14916D38005285C7 /* Project object */;
+}
