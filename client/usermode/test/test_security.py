@@ -89,3 +89,7 @@ def run_tests():
     test_verify_cert()
     test_verify_signature()
 
+if __name__ == "__main__":
+    run_tests()
+    print("Done.")
+

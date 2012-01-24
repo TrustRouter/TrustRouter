@@ -71,7 +71,7 @@ int verify_signature(const char* certfile, unsigned char* signature, const unsig
     int keysize;
     int ret = 0;
     const EVP_MD *digest_algorithm;
-    EVP_MD_CTX ctx;
+    EVP_MD_CTX *ctx;
     unsigned char digest[EVP_MAX_MD_SIZE];
     int digest_length;
     int rsa_out_length;
@@ -101,11 +101,11 @@ int verify_signature(const char* certfile, unsigned char* signature, const unsig
 
     keysize = RSA_size(rsa);
     digest_algorithm = EVP_sha1();
-    EVP_MD_CTX_init(&ctx);
-    EVP_DigestInit_ex(&ctx, digest_algorithm, NULL);
-    EVP_DigestUpdate(&ctx, signed_data, signed_data_length);
-    EVP_DigestFinal_ex(&ctx, digest, &digest_length);
-    EVP_MD_CTX_cleanup(&ctx);
+    ctx = EVP_MD_CTX_create();
+    EVP_DigestInit_ex(ctx, digest_algorithm, NULL);
+    EVP_DigestUpdate(ctx, signed_data, signed_data_length);
+    EVP_DigestFinal_ex(ctx, digest, &digest_length);
+    EVP_MD_CTX_cleanup(ctx);
 
     rsa_out = OPENSSL_malloc(keysize);
     rsa_out_length = RSA_public_decrypt(keysize,signature,rsa_out,rsa,RSA_PKCS1_PADDING);

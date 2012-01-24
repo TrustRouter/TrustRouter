@@ -65,8 +65,11 @@ def verify_signature(signing_cert_path, signed_data, signature):
     # signed_data       :   raw package data (bytes) which were signed to create 
     #                       the signature
     # signature         :   supposedly rsa_pkcs1_1.5 signature over sha1(signed_data)
+    signing_cert_path = _format_to_bytes(signing_cert_path)
+    signature = bytes(signature)
+    signed_data = bytes(signed_data) 
 
-    signed = _verify_signature(_format_to_bytes(signing_cert_path), 
+    signed = _verify_signature(signing_cert_path, 
                                 signature, 
                                 signed_data, 
                                 len(signed_data))
