@@ -12,6 +12,10 @@ ICMPv6_NDP_OPTIONS = {
     12 : "ICMPv6_NDP_RSASignature"
 }
 
+# On Windows, we cannot use socket.IPPROTO_ICMPV6 because it's not
+# included in Python, see http://bugs.python.org/issue6926    
+IPPROTO_ICMPV6 = 58
+
 class AbstractPacket(object):
     def parse(self, binary):
         bit_offset = 0
@@ -19,11 +23,12 @@ class AbstractPacket(object):
             binary, bit_offset = field.parse(binary, bit_offset)
         return binary
 
-    def get_value(self, field):
-        return self.fields[field].value
+    def __getitem__(self, key):
+        return self.fields[key].value
 
 
 class IPv6(AbstractPacket):
+
     def __init__(self, binary):
         self.fields = OrderedDict([
             ("version", BitField(4)),
@@ -42,8 +47,8 @@ class IPv6(AbstractPacket):
           
         
     def get_payload_class(self, binary):
-        next_header = self.get_value("next_header")
-        if next_header == socket.IPPROTO_ICMPV6:
+        next_header = self["next_header"]
+        if next_header == IPPROTO_ICMPV6:
             icmp_type = binary[0]
             try:
                 return globals()[ICMPv6_TYPES[icmp_type]]
@@ -74,7 +79,6 @@ class ICMPv6_NDP_RA(AbstractPacket):
         self.options = []
         remaining_binary = self.parse(binary)
         self.binary = binary[:len(binary) - len(remaining_binary)]
-        # ToDo: Parse IPv6 Extensions
         self.parse_options(remaining_binary)
 
     
@@ -126,7 +130,7 @@ class ICMPv6_NDP_RSASignature(AbstractPacket):
         self.binary = binary[:len(binary) - len(remaining_binary)]
 
     def _sig_len(self):
-        return (self.get_value("length") * 8 - 20)
+        return (self["length"] * 8 - 20)
 
 
 class ICMPv6_NDP_Option(AbstractPacket):
@@ -140,7 +144,7 @@ class ICMPv6_NDP_Option(AbstractPacket):
 
     def parse(self, binary):
         binary = super(ICMPv6_NDP_Option, self).parse(binary)
-        bytes_done = self.get_value("length") * 8 - 2
+        bytes_done = self["length"] * 8 - 2
         return binary[bytes_done:]
 
 
