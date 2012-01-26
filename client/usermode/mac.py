@@ -5,10 +5,10 @@ import shared
 
 class MacOSAdapter(object):
 
-    KEXT_NAME = "org.trustrouter.kext"
+    KEXT_NAME = "net.trustrouter.kext"
 
-    ACTION_REJECT = 0
-    ACTION_ACCEPT = 1
+    ACTION_REJECT = 1
+    ACTION_ACCEPT = 0
     
     def __init__(self, socket_=None, shared_=None):
         if socket_ is None:
@@ -30,6 +30,7 @@ class MacOSAdapter(object):
             packet_id = self._readBytes(struct.calcsize("P"))
             # Read IPv6 Header (= 40 bytes)
             packet = self._readBytes(40)
+            self._clean_addresses(packet)
             # Unmarshal payload length field
             payload_length = struct.unpack("!H", packet[4:6])[0]
             packet.extend(self._readBytes(payload_length))
@@ -53,6 +54,13 @@ class MacOSAdapter(object):
         while len(result) != count:
             result.extend(self.socket.recv(count - len(result)))
         return result
+
+
+    def _clean_addresses(self, ipv6header):
+        if ipv6header[8:10] == b"\xfe\x80":
+            ipv6header[10:12] = b"\x00\x00"
+        if ipv6header[24:26] == b"\xff\x02":
+            ipv6header[26:28] = b"\x00\x00"        
 
 
 if __name__ == "__main__":

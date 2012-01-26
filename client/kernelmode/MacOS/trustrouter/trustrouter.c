@@ -21,7 +21,7 @@
 
 #include "trustrouter.h"
 
-#define BUNDLENAME "org.trustrouter.kext"
+#define BUNDLENAME "net.trustrouter.kext"
 
 static ipfilter_t installed_filter;
 static kern_ctl_ref ctlref;

@@ -1,0 +1,3 @@
+[submodule "client/kernelmode/Linux/nfqueue-bindings"]
+	path = client/kernelmode/Linux/nfqueue-bindings
+	url = git@github.com:TrustRouter/nfqueue-bindings.git

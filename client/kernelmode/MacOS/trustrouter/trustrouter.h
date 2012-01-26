@@ -20,7 +20,7 @@ static errno_t ctl_send_fn(kern_ctl_ref kctlref, u_int32_t unit, void *unitinfo,
 
 typedef enum action {
     ACCEPT = 0,
-    REJECT = -1
+    REJECT = 1
 } action;
 
 struct pktQueueItem {
