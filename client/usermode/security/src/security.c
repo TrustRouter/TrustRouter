@@ -73,7 +73,7 @@ int verify_signature(const char* certfile, unsigned char* signature, const unsig
     const EVP_MD *digest_algorithm;
     EVP_MD_CTX *ctx;
     unsigned char digest[EVP_MAX_MD_SIZE];
-    int digest_length;
+    unsigned int digest_length;
     int rsa_out_length;
     unsigned char *rsa_out = NULL;
 	// defined in rfc3447 EMSA-PKCS1-v1_5-ENCODE

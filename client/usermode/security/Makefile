@@ -2,13 +2,13 @@ mac: mac32 mac64
 
 mac32: src/security.c src/security.h lib/openssl/MacOS/ia32/libcrypto.a lib/openssl/MacOS/ia32/libssl.a
 	gcc -Llib/openssl/MacOS/ia32 -fPIC -c src/security.c -o security.o -arch i386
-	gcc -shared -Wl,-install_name,libsecurity.dylib -Llib/openssl/MacOS/ia32 -o libsecurity.dylib  security.o -arch i386 -lcrypto -lssl
+	gcc -shared -fPIC -Wl,-install_name,libsecurity.dylib -Llib/openssl/MacOS/ia32 -o libsecurity.dylib  security.o -arch i386 -lcrypto -lssl
 	mv libsecurity.dylib lib/MacOS/ia32
 	rm security.o
 
 mac64: src/security.c src/security.h lib/openssl/MacOS/x64/libcrypto.a lib/openssl/MacOS/x64/libssl.a
 	gcc -Llib/openssl/MacOS/x64 -fPIC -c src/security.c -o security.o -arch x86_64
-	gcc -shared -Wl,-install_name,libsecurity.dylib -Llib/openssl/MacOS/x64 -o libsecurity.dylib  security.o -arch x86_64 -lcrypto -lssl
+	gcc -shared -fPIC -Wl,-install_name,libsecurity.dylib -Llib/openssl/MacOS/x64 -o libsecurity.dylib  security.o -arch x86_64 -lcrypto -lssl
 	mv libsecurity.dylib lib/MacOS/x64
 	rm security.o
 
@@ -21,6 +21,30 @@ mac32clean:
 
 mac64clean:
 	rm lib/MacOS/x64/libsecurity.dylib
+
+lin: lin32 lin64
+
+lin32: src/security.c src/security.h lib/openssl/Linux/ia32/libcrypto.a lib/openssl/Linux/ia32/libssl.a
+	gcc -Wall -fPIC -c src/security.c -Isrc -m32
+	gcc -shared -fPIC -Llib/openssl/Linux/ia32 -Wl,-Bsymbolic -o libsecurity.so security.o -m32 -lcrypto -lssl
+	mv libsecurity.so lib/Linux/ia32
+	rm security.o
+
+lin64: src/security.c src/security.h lib/openssl/Linux/x64/libcrypto.a lib/openssl/Linux/x64/libssl.a
+	gcc -Wall -fPIC -c src/security.c -Isrc -m64
+	gcc -shared -fPIC -Llib/openssl/Linux/x64 -Wl,-Bsymbolic -o libsecurity.so security.o -m64 -lcrypto -lssl
+	mv libsecurity.so lib/Linux/x64
+	rm security.o
+
+linclean: lin32clean lin64clean
+	rm security.o
+	rm libsecurity.so
+
+lin32clean:
+	rm lib/Linux/ia32/libsecurity.so
+
+lin64clean:
+	rm lib/Linux/x64/libsecurity.so
 	
 win: win32 win64
 
