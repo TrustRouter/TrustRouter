@@ -42,10 +42,11 @@ DelService = %MsnMntrServiceName%,0x200		; Flags note to stop service first
 [SEND.Service]
 DisplayName      = %MsnMntrServiceName%
 Description      = %MsnMntrServiceDesc%
-ServiceBinary    = C:\Windows\System32\drivers\send_callout.sys  	;%windir%\System32\drivers\send_callout.sys
+ServiceBinary    = %12%\send_callout.sys  	;%windir%\system32\drivers\send_callout.sys
 ServiceType      = 1					;SERVICE_KERNEL_DRIVER
-StartType        = 3					;SERVICE_DEMAND_START
+StartType        = 0					;SERVICE_BOOT_START
 ErrorControl     = 1					;SERVICE_ERROR_NORMAL
+LoadOrderGroup	 = Extended Base
 
 ;
 ; Copy Files

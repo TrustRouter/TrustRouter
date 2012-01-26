@@ -59,16 +59,12 @@ NTSTATUS DriverEntry(
 VOID InitializeFilter() 
 {
 	NTSTATUS status;
-	FWPM_FILTER0 fwpFilter;
+	
 	FWPM_SUBLAYER0 fwpFilterSubLayer;
-	FWPM_FILTER_CONDITION0 fwpConditions[1];
 	FWPS_CALLOUT1 sCallout;
-	FWPM_CALLOUT0 mCallout;	
 	UINT32 CalloutId;
 	
-	RtlZeroMemory(&fwpFilter, sizeof(FWPM_FILTER0));
 	RtlZeroMemory(&sCallout, sizeof(FWPS_CALLOUT1));
-	RtlZeroMemory(&mCallout, sizeof(FWPM_CALLOUT0));
 	
 	sCallout.calloutKey = SEND_CALLOUT_DRIVER;
 	sCallout.flags = 0;
@@ -81,45 +77,13 @@ VOID InitializeFilter()
 		&sCallout,
 		&CalloutId);
 		
-	status = FwpmEngineOpen0(
-		NULL, 
-		RPC_C_AUTHN_WINNT, 
-		NULL,
-		NULL, 
-		&EngineHandle);
-	
-	mCallout.calloutKey = SEND_CALLOUT_DRIVER;
-	mCallout.displayData.name = L"ICMPv6 Router Advertisment callout";
-	mCallout.displayData.description = L"Callout driver inspecting all ICMPv6 Router Advertisment";
-	mCallout.flags = 0;
-	mCallout.applicableLayer = FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6;	
-	
-	status = FwpmCalloutAdd0(
-		EngineHandle,
-		&mCallout,
-		NULL,
-		NULL);
-	
-	fwpConditions[0].fieldKey = FWPM_CONDITION_ORIGINAL_ICMP_TYPE;
-	fwpConditions[0].matchType = FWP_MATCH_EQUAL;
-	fwpConditions[0].conditionValue.type = FWP_UINT16;
-	fwpConditions[0].conditionValue.uint16 = 134; // Router Advertisment code
-	
-	fwpFilter.numFilterConditions = 1;
-	fwpFilter.filterCondition = fwpConditions;	
-	fwpFilter.layerKey =  FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6;
-	fwpFilter.action.type = FWP_ACTION_CALLOUT_INSPECTION;
-	fwpFilter.action.calloutKey = SEND_CALLOUT_DRIVER;
-	fwpFilter.subLayerKey = FWPM_SUBLAYER_UNIVERSAL;
-	fwpFilter.weight.type = FWP_EMPTY; // auto-weight.
-	fwpFilter.displayData.name = L"ICMPv6 Router Advertisment inspection";
-	fwpFilter.displayData.description = L"Callout filter inspecting all ICMPv6 Router Advertisment";
-
-	status = FwpmFilterAdd0(
-		EngineHandle,
-		&fwpFilter,
-		NULL,
-		&FilterId);
+	if (status == STATUS_SUCCESS) {
+		DbgPrint("-+-+-+- Callout register was successful.\n");
+	} else if (status == STATUS_FWP_ALREADY_EXISTS) {
+		DbgPrint("-+-+-+- Callout could not be registered.\n");
+	} else {
+		DbgPrint("-+-+-+- Callout could not be registered. Status: %0x\n", status);
+	}
 }
 
 NTSTATUS SendCalloutCreate(PDEVICE_OBJECT pDeviceObject, PIRP Irp) {
@@ -577,16 +541,6 @@ VOID DriverUnload(IN PDRIVER_OBJECT pDriverObject)
 	NTSTATUS status = STATUS_SUCCESS;
 	
 	status = FwpsCalloutUnregisterByKey0(&SEND_CALLOUT_DRIVER);
-	
-	status = FwpmFilterDeleteById0(
-		EngineHandle,
-		FilterId
-	);	
-	
-	status = FwpmEngineClose0(EngineHandle);
-	EngineHandle = NULL;
-
-	
 	
 	//FwpmCalloutDeleteByKey0(
 	//	EngineHandle,
