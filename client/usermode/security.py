@@ -14,7 +14,7 @@ lib_directory = module_directory + "/security/lib/"
 system = platform.system()
 
 if system == "Windows":
-    lib_directory += "Win/"
+    lib_directory += "Windows/"
     lib_name = "libsecurity.dll"
 elif system == "Darwin":
     lib_directory += "MacOS/"

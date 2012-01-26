@@ -10,5 +10,11 @@
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 
-int verify_signature(const char* certfile, unsigned char* signature, const unsigned char* signed_data, const unsigned int signed_data_length);
-int verify_cert(const char* CAfile, const char* certfile, const char* untrusted_certsfile);
+#ifdef _WIN32
+#define DLLExport __declspec(dllexport)
+#else
+#define DLLExport 
+#endif
+
+ DLLExport int verify_signature(const char* certfile, unsigned char* signature, const unsigned char* signed_data, const unsigned int signed_data_length);
+ DLLExport int verify_cert(const char* CAfile, const char* certfile, const char* untrusted_certsfile);

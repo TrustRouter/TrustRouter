@@ -21,3 +21,13 @@ mac32clean:
 
 mac64clean:
 	rm lib/MacOS/x64/libsecurity.dylib
+	
+win: win32 win64
+
+win32: src\security.c src\security.h
+	cl /MD /I lib\openssl\include /I src /TC src\security.c /link /DLL /LIBPATH lib\openssl\Windows\ia32\libeay32.lib lib\openssl\Windows\ia32\ssleay32.lib WS2_32.LIB ADVAPI32.LIB GDI32.LIB USER32.LIB /OUT:libsecurity.dll
+	move libsecurity.dll lib/Windows/ia32
+	del security.obj
+	del libsecurity.lib
+	del libsecurity.exp
+	
