@@ -21,7 +21,7 @@ class Shared(object):
             icmp_data.extend(option.binary)
 
         if rsa_option is None:
-            print("Unsinged RA --> accept")
+            print("Unsigned RA --> accept")
             accept_callback()
             return
 

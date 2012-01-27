@@ -3,6 +3,7 @@ from socket import AF_INET6
 
 import sys
 import nfqueue
+import shared
 
 IP6TABLES = "ip6tables"
 RA_TYPE = "134"
@@ -10,19 +11,18 @@ RA_TYPE = "134"
 def cb(payload):
     print("python callback called!")
     data = payload.get_data()
-    print(data)
 
-    accept_callback = _get_callback(data, nfqueue.NF_ACCEPT)
-    reject_callback = _get_callback(data, nfqueue.NF_DROP)
+    accept_callback = _get_callback(payload, nfqueue.NF_ACCEPT)
+    reject_callback = _get_callback(payload, nfqueue.NF_DROP)
 
-    shared.new_packet(data, accept_callback, reject_callback)
+    common_part = shared.Shared()
+    common_part.new_packet(data, accept_callback, reject_callback)
 
     sys.stdout.flush()
     return 1
 
 def _get_callback(payload, action):
     def callback():
-        print("action called: ", action)
         payload.set_verdict(action)
     return callback
 
