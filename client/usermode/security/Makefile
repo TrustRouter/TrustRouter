@@ -1,14 +1,14 @@
 mac: mac32 mac64
 
 mac32: src/security.c src/security.h lib/openssl/MacOS/ia32/libcrypto.a lib/openssl/MacOS/ia32/libssl.a
-	gcc -Isrc -Ilib/openssl/include -Llib/openssl/MacOS/ia32 -fPIC -c src/security.c -o security.o -arch i386
-	gcc -shared -fPIC -Wl,-install_name,libsecurity.dylib -Isrc -Ilib/openssl/include -Llib/openssl/MacOS/ia32 -o libsecurity.dylib  security.o -arch i386 -lcrypto -lssl
+	gcc -Isrc -Ilib/openssl/include -Llib/openssl/MacOS/ia32 -fPIC -c src/security.c -o security.o -m32
+	gcc -shared -fPIC -Wl,-install_name,libsecurity.dylib -Isrc -Ilib/openssl/include -Llib/openssl/MacOS/ia32 -o libsecurity.dylib  security.o -m32 -lcrypto -lssl
 	mv libsecurity.dylib lib/MacOS/ia32
 	rm security.o
 
 mac64: src/security.c src/security.h lib/openssl/MacOS/x64/libcrypto.a lib/openssl/MacOS/x64/libssl.a
-	gcc -Isrc -Ilib/openssl/include -Llib/openssl/MacOS/x64 -fPIC -c src/security.c -o security.o -arch x86_64
-	gcc -Isrc -Ilib/openssl/include -shared -fPIC -Wl,-install_name,libsecurity.dylib -Llib/openssl/MacOS/x64 -o libsecurity.dylib  security.o -arch x86_64 -lcrypto -lssl
+	gcc -Isrc -Ilib/openssl/include -Llib/openssl/MacOS/x64 -fPIC -c src/security.c -o security.o -m64
+	gcc -Isrc -Ilib/openssl/include -shared -fPIC -Wl,-install_name,libsecurity.dylib -Llib/openssl/MacOS/x64 -o libsecurity.dylib  security.o -m64 -lcrypto -lssl
 	mv libsecurity.dylib lib/MacOS/x64
 	rm security.o
 
