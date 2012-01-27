@@ -25,14 +25,14 @@ elif system == "Linux":
 else:
     raise Exception("Unable to load security library. System: %s\n", system)
 
-machine = platform.machine().lower()
+architecture = platform.architecture()[0]
 
-if "64" in machine:
+if architecture == "64bit":
     lib_directory += "x64/"
-elif "32" in machine or "86" in machine:
+elif architecture == "32bit":
     lib_directory += "ia32/"
 else:
-    raise Exception("Unable to load security library. Machine: %s\n", machine)
+    raise Exception("Unable to load security library. Architecture: %s\n", architecture)
 
 if not os.path.isfile(lib_directory + lib_name):
     raise Exception("Unable to load security library. Path: %s\n", lib_directory + lib_name)
