@@ -12,10 +12,19 @@ def cb(payload):
     data = payload.get_data()
     print(data)
 
-    payload.set_verdict(nfqueue.NF_ACCEPT)
+    accept_callback = _get_callback(data, nfqueue.NF_ACCEPT)
+    reject_callback = _get_callback(data, nfqueue.NF_DROP)
+
+    shared.new_packet(data, accept_callback, reject_callback)
 
     sys.stdout.flush()
     return 1
+
+def _get_callback(payload, action):
+    def callback():
+        print("action called: ", action)
+        payload.set_verdict(action)
+    return callback
 
 try:
     # Set ip6tables filtering rule
