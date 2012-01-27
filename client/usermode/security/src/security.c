@@ -129,7 +129,7 @@ int verify_signature(const char* certfile, unsigned char* signature, const unsig
             if (rsa_out[i] != digest[i - sha1_digest_info_length]) {
                 ret = 0;
             }
-        }        
+        }
     }
     if(rsa_out) OPENSSL_free(rsa_out);
     RSA_free(rsa);
