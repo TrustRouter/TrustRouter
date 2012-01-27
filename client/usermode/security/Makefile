@@ -55,3 +55,9 @@ win32: src\security.c src\security.h
 	del libsecurity.lib
 	del libsecurity.exp
 	
+win64: src\security.c src\security.h
+	cl /MD /I lib\openssl\include /I src /TC src\security.c /link /DLL /LIBPATH lib\openssl\Windows\x64\libeay32.lib lib\openssl\Windows\x64\ssleay32.lib WS2_32.LIB ADVAPI32.LIB GDI32.LIB USER32.LIB /OUT:libsecurity.dll
+	move libsecurity.dll lib/Windows/x64
+	del security.obj
+	del libsecurity.lib
+	del libsecurity.exp
