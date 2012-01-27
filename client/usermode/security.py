@@ -59,6 +59,11 @@ def _format_to_bytes(string):
 #       1       : True
 # -1 (error)    : False --> better a false negative than a false positive
 
+#verify_prefix(signing_cert_path, prefix<bytearray>, prefixlength)
+def verify_prefix(signing_cert_path, prefix, prefix_length):
+    #TODO
+    return True
+
 def verify_signature(signing_cert_path, signed_data, signature):
     # signing_cert_path :   path to the certificate which contains the public key,
     #                       corresponding to the private key, which was used to sign
