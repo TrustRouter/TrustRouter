@@ -373,6 +373,10 @@ VOID NTAPI ClassifyFn1(
 		DbgPrint("Cannot pend Classify.\n");
 	} else if (status == STATUS_SUCCESS) {
 		DbgPrint("Packet set to 'pending' successfully.\n");
+	} else if (status == STATUS_FWP_NULL_POINTER) {
+		DbgPrint("Invalid parameters for pending. CompletionHandle is: %0x\n", inMetaValues->completionHandle);
+	} else if (status == STATUS_FWP_TCPIP_NOT_READY) {
+		DbgPrint("TCPIP stack is not ready.\n");
 	} else {
 		DbgPrint("Error when trying to pend packet: %0x\n", status);
 	}
