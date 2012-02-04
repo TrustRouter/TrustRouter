@@ -3,6 +3,7 @@ from socket import AF_INET6
 
 import sys
 import nfqueue
+import shared
 
 IP6TABLES = "ip6tables"
 RA_TYPE = "134"
@@ -10,12 +11,20 @@ RA_TYPE = "134"
 def cb(payload):
     print("python callback called!")
     data = payload.get_data()
-    print(data)
 
-    payload.set_verdict(nfqueue.NF_ACCEPT)
+    accept_callback = _get_callback(payload, nfqueue.NF_ACCEPT)
+    reject_callback = _get_callback(payload, nfqueue.NF_DROP)
+
+    common_part = shared.Shared()
+    common_part.new_packet(data, accept_callback, reject_callback)
 
     sys.stdout.flush()
     return 1
+
+def _get_callback(payload, action):
+    def callback():
+        payload.set_verdict(action)
+    return callback
 
 try:
     # Set ip6tables filtering rule

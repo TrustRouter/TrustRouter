@@ -6,9 +6,7 @@
 #include <fwpmk.h>
 #include <initguid.h>
 
-UINT64 FilterId;
 PDEVICE_OBJECT pDeviceObject;
-HANDLE EngineHandle;
 
 typedef struct ICMP_V6_REINJECT_INFO {
 	NET_BUFFER_LIST *netBufferList;
