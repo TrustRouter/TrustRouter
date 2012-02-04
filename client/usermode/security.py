@@ -47,6 +47,10 @@ _verify_signature = libsecurity.verify_signature
 _verify_signature.argtypes = [c_char_p, c_char_p, c_char_p, c_int]
 _verify_signature.restype = c_int
 
+_verify_prefix = libsecurity.verify_prefix
+_verify_prefix.argtypes = [c_char_p, c_char_p, c_char_p, c_char_p]
+_verify_prefix.restype = c_int
+
 def _format_to_bytes(string):
     if string == None:
         return string
@@ -60,6 +64,7 @@ def _format_to_bytes(string):
 # -1 (error)    : False --> better a false negative than a false positive
 
 #verify_prefix(signing_cert_path, prefix<bytearray>, prefixlength)
+#CA and untrusted are needed, because the resources in cert could be inherited
 def verify_prefix(signing_cert_path, prefix, prefix_length):
     #TODO
     return True
@@ -74,15 +79,19 @@ def verify_signature(signing_cert_path, signed_data, signature):
     signature = bytes(signature)
     signed_data = bytes(signed_data) 
 
-    signed = _verify_signature(signing_cert_path, 
-                                signature, 
-                                signed_data, 
-                                len(signed_data))
+    signed = _verify_signature(
+        signing_cert_path, 
+        signature, 
+        signed_data, 
+        len(signed_data)
+    )
     return 0 < signed
 
 # str(path_to_file), str(path_to_file) or None, str(path_to_file)
 def verify_cert(CAcert_path, untrusted_certs_path, cert_path):
-    valid = _verify_cert(_format_to_bytes(CAcert_path), 
-                                _format_to_bytes(cert_path), 
-                                _format_to_bytes(untrusted_certs_path))
+    valid = _verify_cert(
+        _format_to_bytes(CAcert_path),
+        _format_to_bytes(untrusted_certs_path), 
+        _format_to_bytes(cert_path) 
+    )
     return 0 < valid

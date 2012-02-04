@@ -70,6 +70,9 @@ fh = open(router3, "r")
 router3_data = fh.read()
 fh.close()
 
+#\x20\x01\x06\x38\x08\x07\x02\x1d\x00\x00\x00\x00\x00\x00\x00\x00
+#64
+
 def test_verify_cert():
     assert verify_cert(ripe_o, None, dfn_o) == True
     assert verify_cert(ripe_o, dfn_o, uni_o) == True

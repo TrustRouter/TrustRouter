@@ -1,5 +1,5 @@
 // linked against static self-compiled version of openssl-libs with enable-rfc3779 flag
-
+// verify_cert adapted from apps/verify.c
 /* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
  * All rights reserved.
  *
@@ -61,7 +61,95 @@
 
 static X509 *load_cert(const char *file);
 static int check(X509_STORE *ctx, const char *file, STACK_OF(X509) *uchain);
-static STACK_OF(X509) *load_untrusted(const char *file);
+static STACK_OF(X509) *load_certs(const char *file);
+
+// verify if prefix is part of the resources listed in cert
+// CA and untrusted are needed, because the resources in cert could be inherited
+// prefix_as_ext is the text-representation of an ip-address block like you would specify in an extension file
+// when creating a certificate, e.g. IPv6:2001:0638::/32
+int verify_prefix(const char* CAfile, const char* untrusted_certsfile, const char* certfile, char* prefix_as_ext) 
+{
+    X509_EXTENSION *prefix_ext;
+    IPAddrBlocks *prefix_blocks = NULL;
+    X509_STORE *store = NULL;
+    X509_LOOKUP *lookup = NULL;
+    X509 *cert;
+    X509_STORE_CTX store_ctx;
+    STACK_OF(X509) *chain = NULL;
+    int allow_inheritance = 0; // router prefix cannot inherit
+    int ret = 0;
+
+    if ((prefix_ext = X509V3_EXT_conf_nid(NULL, NULL, NID_sbgp_ipAddrBlock, prefix_as_ext)) == NULL){
+        ret = -1;
+        return ret;
+    }
+
+    prefix_blocks = (IPAddrBlocks *) X509V3_EXT_d2i(prefix_ext);
+    X509_EXTENSION_free(prefix_ext);
+
+    store = X509_STORE_new();
+    if (store == NULL) {
+        ret = -1;
+        sk_IPAddressFamily_pop_free(prefix_blocks, IPAddressFamily_free);
+        return ret;        
+    }
+
+    OpenSSL_add_all_algorithms();
+
+    lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file());
+    if (lookup == NULL) {
+        ret = -1;
+        goto end;        
+    }
+
+    if (!X509_LOOKUP_load_file(lookup, CAfile, X509_FILETYPE_PEM)) {
+        ret = -1;
+        goto end;        
+    }
+
+    if (untrusted_certsfile) {
+        X509_LOOKUP_load_file(lookup, untrusted_certsfile, X509_FILETYPE_PEM);
+    }
+
+    lookup = X509_STORE_add_lookup(store, X509_LOOKUP_hash_dir());
+    if (lookup == NULL) {
+        ret = -1;
+        goto end;
+    }
+
+    X509_LOOKUP_add_dir(lookup, NULL, X509_FILETYPE_DEFAULT);
+
+    cert = load_cert(certfile);
+    if (cert == NULL) {
+        ret = -1;
+        goto end;
+    }
+
+    X509_STORE_CTX_init(&store_ctx, store, cert, NULL);
+    X509_free(cert);
+    if (X509_verify_cert(&store_ctx) <= 0) {
+        // no chain for the certificate can be constructed
+        ret = -1;
+        X509_STORE_CTX_cleanup(&store_ctx);
+        goto end;        
+    } else {
+        chain = X509_STORE_CTX_get1_chain(&store_ctx);
+    }
+    X509_STORE_CTX_cleanup(&store_ctx);
+
+    ret = v3_addr_validate_resource_set(chain, prefix_blocks, allow_inheritance);
+
+end:
+    if (prefix_blocks != NULL) 
+        sk_IPAddressFamily_pop_free(prefix_blocks, IPAddressFamily_free);
+    if (store != NULL) 
+        X509_STORE_free(store);
+    if (chain != NULL) 
+        sk_X509_pop_free(chain, X509_free);
+    EVP_cleanup();
+    return ret;
+
+}
 
 int verify_signature(const char* certfile, unsigned char* signature, const unsigned char* signed_data, const unsigned int signed_data_length)
 {
@@ -85,21 +173,23 @@ int verify_signature(const char* certfile, unsigned char* signature, const unsig
     OpenSSL_add_all_digests();
 
     cert = load_cert(certfile);
-    if(cert) {
+    if (cert) {
         pkey = X509_get_pubkey(cert);
         X509_free(cert);
     }
     
-    if(!pkey) {
+    if (!pkey) {
         ret = -1;
+        EVP_cleanup();
         return ret;
     }
 
     rsa = EVP_PKEY_get1_RSA(pkey);
     EVP_PKEY_free(pkey);
-    if(!rsa) {
+    if (!rsa) {
         RSA_free(rsa);
         ret = -1;
+        EVP_cleanup();
         return ret;
     }
 
@@ -113,7 +203,6 @@ int verify_signature(const char* certfile, unsigned char* signature, const unsig
 
     rsa_out = OPENSSL_malloc(keysize);
     rsa_out_length = RSA_public_decrypt(keysize,signature,rsa_out,rsa,RSA_PKCS1_PADDING);
-
 
 
     if (rsa_out_length != (digest_length + sha1_digest_info_length)) {
@@ -131,49 +220,57 @@ int verify_signature(const char* certfile, unsigned char* signature, const unsig
             }
         }
     }
-    if(rsa_out) OPENSSL_free(rsa_out);
+    if (rsa_out) OPENSSL_free(rsa_out);
     RSA_free(rsa);
-
+    EVP_cleanup();
     return ret;
 }
 
-int verify_cert(const char* CAfile, const char* certfile, const char* untrusted_certsfile)
+int verify_cert(const char* CAfile, const char* untrusted_certsfile, const char* certfile)
 {
-    // printf("cert: %s\t untrusted: %s\t CA: %s\n", certfile, untrusted_certsfile, CAfile);
     int ret = 0;
-    X509_STORE *cert_ctx = NULL;
+    X509_STORE *store = NULL;
     X509_LOOKUP *lookup = NULL;
     STACK_OF(X509) *untrusted = NULL;
 
-    cert_ctx=X509_STORE_new();
-    if (cert_ctx == NULL) goto end;
+    store = X509_STORE_new();
+    if (store == NULL) {
+        ret = -1;
+        goto end;
+    }
 
     OpenSSL_add_all_algorithms();
 
-    lookup=X509_STORE_add_lookup(cert_ctx,X509_LOOKUP_file());
-    if (lookup == NULL)
+    lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file());
+    if (lookup == NULL) {
+        ret = -1;
         goto end;
+    }
 
-    if(!X509_LOOKUP_load_file(lookup,CAfile,X509_FILETYPE_PEM))
+    if (!X509_LOOKUP_load_file(lookup, CAfile, X509_FILETYPE_PEM)) {
+        ret = -1;
         goto end;
+    }
 
-    lookup=X509_STORE_add_lookup(cert_ctx,X509_LOOKUP_hash_dir());
-    if (lookup == NULL)
+    lookup = X509_STORE_add_lookup(store, X509_LOOKUP_hash_dir());
+    if (lookup == NULL) {
+        ret = -1;
         goto end;
+    }
 
-    X509_LOOKUP_add_dir(lookup,NULL,X509_FILETYPE_DEFAULT);
+    X509_LOOKUP_add_dir(lookup, NULL, X509_FILETYPE_DEFAULT);
 
-    if(untrusted_certsfile)
-        {
-        untrusted = (STACK_OF(X509)*) load_untrusted(untrusted_certsfile);
-        if(!untrusted)
-            goto end;
-        }
+    if (untrusted_certsfile) {
+        untrusted = (STACK_OF(X509)*) load_certs(untrusted_certsfile);
+    }
 
-    ret = check(cert_ctx, certfile, untrusted);
+    ret = check(store, certfile, untrusted);
 end:
-    if (cert_ctx != NULL) X509_STORE_free(cert_ctx);
-    sk_X509_pop_free(untrusted, X509_free);
+    if (store != NULL)
+        X509_STORE_free(store);
+    if (untrusted) 
+        sk_X509_pop_free(untrusted, X509_free);
+    EVP_cleanup();
     return ret;
 }
 
@@ -188,29 +285,30 @@ static X509 *load_cert(const char *file)
     if (BIO_read_filename(cert,file) <= 0)
         goto end;
 
-    x=PEM_read_bio_X509_AUX(cert,NULL, NULL, NULL);
+    x = PEM_read_bio_X509_AUX(cert, NULL, NULL, NULL);
 end:
-    if (cert != NULL) BIO_free(cert);
+    if (cert != NULL) 
+        BIO_free(cert);
     return(x);
 }
 
-static STACK_OF(X509) *load_untrusted(const char *certfile)
+static STACK_OF(X509) *load_certs(const char *certfile)
 {
     STACK_OF(X509_INFO) *sk = NULL;
     STACK_OF(X509) *stack = NULL, *ret = NULL;
     BIO *in = NULL;
     X509_INFO *xi;
 
-    if(!(stack = sk_X509_new_null())) {
+    if (!(stack = sk_X509_new_null())) {
         goto end;
     }
 
-    if(!(in = BIO_new_file(certfile, "r"))) {
+    if (!(in = BIO_new_file(certfile, "r"))) {
         goto end;
     }
 
     /* This loads from a file, a stack of x509/crl/pkey sets */
-    if(!(sk = PEM_X509_INFO_read_bio(in,NULL,NULL,NULL))) {
+    if (!(sk = PEM_X509_INFO_read_bio(in, NULL, NULL, NULL))) {
         goto end;
     }
 
@@ -225,7 +323,7 @@ static STACK_OF(X509) *load_untrusted(const char *certfile)
             }
         X509_INFO_free(xi);
         }
-    if(!sk_X509_num(stack)) {
+    if (!sk_X509_num(stack)) {
         sk_X509_free(stack);
         goto end;
     }
@@ -250,7 +348,7 @@ static int check(X509_STORE *ctx, const char *file, STACK_OF(X509) *uchain)
     if (csc == NULL)
         goto end;
     X509_STORE_set_flags(ctx, 0);
-    if(!X509_STORE_CTX_init(csc,ctx,x,uchain))
+    if (!X509_STORE_CTX_init(csc, ctx, x, uchain))
         goto end;
     i = X509_verify_cert(csc);
     X509_STORE_CTX_free(csc);
