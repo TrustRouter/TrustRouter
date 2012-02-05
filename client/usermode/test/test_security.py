@@ -13,6 +13,8 @@ sys.path.insert(0, upper_directory)
 
 from security import verify_cert, _verify_cert
 from security import verify_signature, _verify_signature
+from security import verify_prefix, _verify_prefix
+from security import _format_to_bytes
 
 data_directory = module_directory + "/example_data/"
 
@@ -70,8 +72,30 @@ fh = open(router3, "r")
 router3_data = fh.read()
 fh.close()
 
-#\x20\x01\x06\x38\x08\x07\x02\x1d\x00\x00\x00\x00\x00\x00\x00\x00
-#64
+prefix_b = bytearray(b'\x20\x01\x06\x38\x08\x07\x02\x1d\x00\x00\x00\x00\x00\x00\x00\x00')
+prefix_length = 64
+prefix_ext_0 = "IPv6:2001:638:807:21d::/64"
+prefix_ext_1 = "IPv6:2001:0638::/32"
+
+def test_verify_prefix():
+    assert _verify_prefix(
+                _format_to_bytes(ripe_o), 
+                None, 
+                _format_to_bytes(dfn_o), 
+                _format_to_bytes(prefix_ext_0)
+            ) == 1
+    assert _verify_prefix(
+                _format_to_bytes(ripe_o),
+                _format_to_bytes(dfn_uni_hpi_o), 
+                _format_to_bytes(router1),
+                _format_to_bytes(prefix_ext_0)
+            ) == 1
+    assert _verify_prefix(
+                _format_to_bytes(ripe_o), 
+                _format_to_bytes(dfn_uni_hpi_o),
+                _format_to_bytes(router1),
+                _format_to_bytes(prefix_ext_1)
+            ) == 0
 
 def test_verify_cert():
     assert verify_cert(ripe_o, None, dfn_o) == True
@@ -91,6 +115,7 @@ def test_verify_signature():
 def run_tests():
     test_verify_cert()
     test_verify_signature()
+    test_verify_prefix()
 
 if __name__ == "__main__":
     run_tests()

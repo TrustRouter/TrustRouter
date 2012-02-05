@@ -73,17 +73,16 @@ int verify_prefix(const char* CAfile, const char* untrusted_certsfile, const cha
     IPAddrBlocks *prefix_blocks = NULL;
     X509_STORE *store = NULL;
     X509_LOOKUP *lookup = NULL;
-    X509 *cert;
+    X509 *cert = NULL;
+    STACK_OF(X509) *untrusted = NULL;
     X509_STORE_CTX store_ctx;
     STACK_OF(X509) *chain = NULL;
     int allow_inheritance = 0; // router prefix cannot inherit
     int ret = 0;
-
     if ((prefix_ext = X509V3_EXT_conf_nid(NULL, NULL, NID_sbgp_ipAddrBlock, prefix_as_ext)) == NULL){
         ret = -1;
         return ret;
     }
-
     prefix_blocks = (IPAddrBlocks *) X509V3_EXT_d2i(prefix_ext);
     X509_EXTENSION_free(prefix_ext);
 
@@ -96,6 +95,10 @@ int verify_prefix(const char* CAfile, const char* untrusted_certsfile, const cha
 
     OpenSSL_add_all_algorithms();
 
+    if (untrusted_certsfile) {
+        untrusted = (STACK_OF(X509)*) load_certs(untrusted_certsfile);
+    }
+
     lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file());
     if (lookup == NULL) {
         ret = -1;
@@ -107,10 +110,6 @@ int verify_prefix(const char* CAfile, const char* untrusted_certsfile, const cha
         goto end;        
     }
 
-    if (untrusted_certsfile) {
-        X509_LOOKUP_load_file(lookup, untrusted_certsfile, X509_FILETYPE_PEM);
-    }
-
     lookup = X509_STORE_add_lookup(store, X509_LOOKUP_hash_dir());
     if (lookup == NULL) {
         ret = -1;
@@ -118,15 +117,14 @@ int verify_prefix(const char* CAfile, const char* untrusted_certsfile, const cha
     }
 
     X509_LOOKUP_add_dir(lookup, NULL, X509_FILETYPE_DEFAULT);
-
     cert = load_cert(certfile);
     if (cert == NULL) {
         ret = -1;
         goto end;
     }
+    X509_STORE_set_flags(store, 0);
+    X509_STORE_CTX_init(&store_ctx, store, cert, untrusted);
 
-    X509_STORE_CTX_init(&store_ctx, store, cert, NULL);
-    X509_free(cert);
     if (X509_verify_cert(&store_ctx) <= 0) {
         // no chain for the certificate can be constructed
         ret = -1;
@@ -138,14 +136,22 @@ int verify_prefix(const char* CAfile, const char* untrusted_certsfile, const cha
     X509_STORE_CTX_cleanup(&store_ctx);
 
     ret = v3_addr_validate_resource_set(chain, prefix_blocks, allow_inheritance);
-
 end:
-    if (prefix_blocks != NULL) 
+    if (cert != NULL)
+        X509_free(cert);
+
+    if (prefix_blocks != NULL)
         sk_IPAddressFamily_pop_free(prefix_blocks, IPAddressFamily_free);
-    if (store != NULL) 
+
+    if (store != NULL)
         X509_STORE_free(store);
+        
+    if (untrusted) 
+        sk_X509_pop_free(untrusted, X509_free);
+
     if (chain != NULL) 
         sk_X509_pop_free(chain, X509_free);
+
     EVP_cleanup();
     return ret;
 

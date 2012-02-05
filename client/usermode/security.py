@@ -58,6 +58,14 @@ def _format_to_bytes(string):
         assert isinstance(string, str)
         return bytes(string.encode(sys.stdin.encoding))
 
+#def _get_ipaddrblock_ext(prefix, prefix_length):
+#    assert (len(prefix) == 16) or (len(prefix) == 4) 
+#    if len(prefix) == 16:
+#        ext = "IPv6:"
+#    if len(prefix) == 4:
+#        ext = "IPv4:"
+
+
 # OpenSSL Code : bool
 #       0       : False
 #       1       : True
@@ -65,7 +73,9 @@ def _format_to_bytes(string):
 
 #verify_prefix(signing_cert_path, prefix<bytearray>, prefixlength)
 #CA and untrusted are needed, because the resources in cert could be inherited
-def verify_prefix(signing_cert_path, prefix, prefix_length):
+
+# str(path_to_file), str(path_to_file) or None, str(path_to_file), bytearray(prefix), int(prefix_length)
+def verify_prefix(CAcert_path, untrusted_certs_path, cert_path, prefix, prefix_length):
     #TODO
     return True
 
