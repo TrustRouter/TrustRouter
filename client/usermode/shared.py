@@ -1,7 +1,7 @@
 import struct
 
 from packet import IPv6, ICMPv6_NDP_RSASignature
-import security
+import RAverification
 
 # see RFC 3971
 CGA_MESSAGE_TYPE_TAG = b"\x08\x6F\xCA\x5E\x10\xB2\x00\xC9\x9C\x8C\xE0\x01\x64\x27\x7C\x08"
@@ -43,7 +43,7 @@ class Shared(object):
         signed_data.extend(packet["destination_addr"])
         signed_data.extend(icmp_data)
 
-        if security.verify_signature(CERT_PATH,
+        if RAverification.verify_signature(CERT_PATH,
                                      signed_data,
                                      rsa_option["digital_signature"]):
             print("Valid signature --> accept")
