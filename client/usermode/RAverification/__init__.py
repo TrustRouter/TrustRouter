@@ -5,6 +5,7 @@ import os
 import sys
 import platform
 from ctypes import CDLL, c_char_p, c_int
+import RAverification.address.inet as helper
 
 module_path = os.path.abspath(__file__)
 module_directory = os.path.split(module_path)[0]
@@ -58,12 +59,19 @@ def _format_to_bytes(string):
         assert isinstance(string, str)
         return bytes(string.encode(sys.stdin.encoding))
 
-#def _get_ipaddrblock_ext(prefix, prefix_length):
-#    assert (len(prefix) == 16) or (len(prefix) == 4) 
-#    if len(prefix) == 16:
-#        ext = "IPv6:"
-#    if len(prefix) == 4:
-#        ext = "IPv4:"
+def _get_ipaddrblock_ext(prefix, prefix_length):
+    assert (len(prefix) == 16) or (len(prefix) == 4) 
+    if len(prefix) == 16:
+        ext = "IPv6:"
+        ext += helper.inet_ntop(helper.AF_INET6, prefix)
+
+    if len(prefix) == 4:
+        ext = "IPv4:"
+        ext += helper.inet_ntop(helper.AF_INET, prefix)
+
+    ext += "/"
+    ext += str(prefix_length)
+    return ext
 
 
 # OpenSSL Code : bool
@@ -71,13 +79,17 @@ def _format_to_bytes(string):
 #       1       : True
 # -1 (error)    : False --> better a false negative than a false positive
 
-#verify_prefix(signing_cert_path, prefix<bytearray>, prefixlength)
-#CA and untrusted are needed, because the resources in cert could be inherited
-
+# CA and untrusted are needed, because the resources in cert could be inherited
 # str(path_to_file), str(path_to_file) or None, str(path_to_file), bytearray(prefix), int(prefix_length)
 def verify_prefix(CAcert_path, untrusted_certs_path, cert_path, prefix, prefix_length):
-    #TODO
-    return True
+    prefix_ext = _get_ipaddrblock_ext(bytes(prefix), prefix_length)
+    valid = _verify_prefix(
+        _format_to_bytes(CAcert_path),
+        _format_to_bytes(untrusted_certs_path),
+        _format_to_bytes(cert_path),
+        _format_to_bytes(prefix_ext)
+    )
+    return 0 < valid
 
 def verify_signature(signing_cert_path, signed_data, signature):
     # signing_cert_path :   path to the certificate which contains the public key,
@@ -107,5 +119,6 @@ def verify_cert(CAcert_path, untrusted_certs_path, cert_path):
     return 0 < valid
 
 __all__ = [
+    'address',
     'test'
 ]

@@ -96,6 +96,11 @@ def test_verify_prefix():
                 _format_to_bytes(router1),
                 _format_to_bytes(prefix_ext_1)
             ) == 0
+    assert verify_prefix(ripe_o, None, dfn_o, prefix_b, prefix_length) == True
+    assert verify_prefix(ripe_o, dfn_uni_hpi_o, router1, prefix_b, prefix_length) == True
+    assert verify_prefix(ripe_o, dfn_uni_hpi_o, router2, prefix_b, prefix_length) == False
+    assert verify_prefix(ripe_o, dfn_uni_hpi_o, router3, prefix_b, prefix_length) == False
+    assert verify_prefix(ripe_o, dfn_uni_hpi_o, router1, prefix_b, prefix_length - 32) == False
 
 def test_verify_cert():
     assert verify_cert(ripe_o, None, dfn_o) == True
