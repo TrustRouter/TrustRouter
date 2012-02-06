@@ -73,6 +73,7 @@ router3_data = fh.read()
 fh.close()
 
 prefix_b = bytearray(b'\x20\x01\x06\x38\x08\x07\x02\x1d\x00\x00\x00\x00\x00\x00\x00\x00')
+prefix_bad = bytearray(b'\x20\x03\x06\x38\x08\x07\x02\x1d\x00\x00\x00\x00\x00\x00\x00\x00')
 prefix_length = 64
 prefix_ext_0 = "IPv6:2001:638:807:21d::/64"
 prefix_ext_1 = "IPv6:2001:0638::/32"
@@ -101,6 +102,9 @@ def test_verify_prefix():
     assert verify_prefix(ripe_o, dfn_uni_hpi_o, router2, prefix_b, prefix_length) == False
     assert verify_prefix(ripe_o, dfn_uni_hpi_o, router3, prefix_b, prefix_length) == False
     assert verify_prefix(ripe_o, dfn_uni_hpi_o, router1, prefix_b, prefix_length - 32) == False
+    assert verify_prefix(ripe_o, None, dfn_o, prefix_bad, prefix_length) == False
+    assert verify_prefix(ripe_o, dfn_uni_hpi_o, router1, prefix_bad, prefix_length) == False
+
 
 def test_verify_cert():
     assert verify_cert(ripe_o, None, dfn_o) == True
