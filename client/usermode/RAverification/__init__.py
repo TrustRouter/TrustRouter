@@ -40,17 +40,13 @@ if not os.path.isfile(lib_directory + lib_name):
 
 libsecurity = CDLL(lib_directory + lib_name)
 
-_verify_cert = libsecurity.verify_cert
-_verify_cert.argtypes = [c_char_p, c_char_p, c_char_p]
-_verify_cert.restype = c_int
-
 _verify_signature = libsecurity.verify_signature
 _verify_signature.argtypes = [c_char_p, c_char_p, c_char_p, c_int]
 _verify_signature.restype = c_int
 
-_verify_prefix = libsecurity.verify_prefix
-_verify_prefix.argtypes = [c_char_p, c_char_p, c_char_p, c_char_p]
-_verify_prefix.restype = c_int
+_verify_prefix_with_cert = libsecurity.verify_prefix_with_cert
+_verify_prefix_with_cert.argtypes = [c_char_p, c_char_p, c_char_p, c_char_p]
+_verify_prefix_with_cert.restype = c_int
 
 def _format_to_bytes(string):
     if string == None:
@@ -81,9 +77,9 @@ def _get_ipaddrblock_ext(prefix, prefix_length):
 
 # CA and untrusted are needed, because the resources in cert could be inherited
 # str(path_to_file), str(path_to_file) or None, str(path_to_file), bytearray(prefix), int(prefix_length)
-def verify_prefix(CAcert_path, untrusted_certs_path, cert_path, prefix, prefix_length):
+def verify_prefix_with_cert(CAcert_path, untrusted_certs_path, cert_path, prefix, prefix_length):
     prefix_ext = _get_ipaddrblock_ext(bytes(prefix), prefix_length)
-    valid = _verify_prefix(
+    valid = _verify_prefix_with_cert(
         _format_to_bytes(CAcert_path),
         _format_to_bytes(untrusted_certs_path),
         _format_to_bytes(cert_path),
@@ -109,14 +105,6 @@ def verify_signature(signing_cert_path, signed_data, signature):
     )
     return 0 < signed
 
-# str(path_to_file), str(path_to_file) or None, str(path_to_file)
-def verify_cert(CAcert_path, untrusted_certs_path, cert_path):
-    valid = _verify_cert(
-        _format_to_bytes(CAcert_path),
-        _format_to_bytes(untrusted_certs_path), 
-        _format_to_bytes(cert_path) 
-    )
-    return 0 < valid
 
 __all__ = [
     'address',

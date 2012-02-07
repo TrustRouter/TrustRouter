@@ -11,26 +11,33 @@ module_directory = os.path.split(module_path)[0]
 upper_directory = os.path.split(module_directory)[0]
 sys.path.insert(0, upper_directory)
 
-from RAverification import verify_cert, _verify_cert
 from RAverification import verify_signature, _verify_signature
-from RAverification import verify_prefix, _verify_prefix
+from RAverification import verify_prefix_with_cert, _verify_prefix_with_cert
 from RAverification import _format_to_bytes
 
-data_directory = module_directory + "/example_data/"
+o_data_directory = module_directory + "/example_data/" + "only_one_block/"
+m_data_directory = module_directory + "/example_data/" + "multiple_blocks/"
 
-ripe_o = data_directory + "ripe/ripe.cer"
-dfn_o = data_directory + "dfn/dfn.cer"
-uni_o = data_directory + "uni_potsdam/uni_potsdam.cer"
-hpi_o = data_directory + "hpi/hpi.cer"
-dfn_uni_hpi_o = data_directory + "dfn+uni_potsdam+hpi.cer"
+ripe_o = o_data_directory + "ripe/ripe.cer"
+dfn_o = o_data_directory + "dfn/dfn.cer"
+uni_o = o_data_directory + "uni_potsdam/uni_potsdam.cer"
+hpi_o = o_data_directory + "hpi/hpi.cer"
+dfn_uni_hpi_o = o_data_directory + "dfn+uni_potsdam+hpi.cer"
 
-router0 = data_directory + "router0/router0.cer"
-router1 = data_directory + "router1_correct/router1.cer"
-router2 = data_directory + "router2_faulty_range/router2.cer"
-router3 = data_directory + "router3_faulty_selfsigned/router3.cer"
+router0_o = o_data_directory + "router0/router0.cer"
+router1_o = o_data_directory + "router1_correct/router1.cer"
+router2_o = o_data_directory + "router2_faulty_range/router2.cer"
+router3_o = o_data_directory + "router3_faulty_selfsigned/router3.cer"
 
-signed_ra_path = data_directory + "router0/signed_data"
-ra_signature_path = data_directory + "router0/signature"
+signed_ra_path = o_data_directory + "router0/signed_data"
+ra_signature_path = o_data_directory + "router0/signature"
+
+ripe_m = m_data_directory + "ripe/ripe.cer"
+dfn_m = m_data_directory + "dfn/dfn.cer"
+uni_m = m_data_directory + "uni_potsdam/uni_potsdam.cer"
+hpi_m = m_data_directory + "hpi/hpi.cer"
+dfn_uni_hpi_m = m_data_directory + "dfn+uni_potsdam+hpi.cer"
+router0_m = m_data_directory + "router0/router0.cer"
 
 fh = open(signed_ra_path, "rb")
 signed_ra = fh.read()
@@ -40,38 +47,6 @@ fh = open(ra_signature_path, "rb")
 ra_signature = fh.read()
 fh.close()
 
-fh = open(ripe_o, "r")
-ripe_o_data = fh.read()
-fh.close()
-
-fh = open(dfn_o, "r")
-dfn_o_data = fh.read()
-fh.close()
-
-fh = open(uni_o, "r")
-uni_o_data = fh.read()
-fh.close()
-
-fh = open(hpi_o, "r")
-hpi_o_data = fh.read()
-fh.close()
-
-fh = open(dfn_uni_hpi_o, "r")
-dfn_uni_hpi_o_data = fh.read()
-fh.close()
-
-fh = open(router1, "r")
-router1_data = fh.read()
-fh.close()
-
-fh = open(router2, "r")
-router2_data = fh.read()
-fh.close()
-
-fh = open(router3, "r")
-router3_data = fh.read()
-fh.close()
-
 prefix_b = bytearray(b'\x20\x01\x06\x38\x08\x07\x02\x1d\x00\x00\x00\x00\x00\x00\x00\x00')
 prefix_bad = bytearray(b'\x20\x03\x06\x38\x08\x07\x02\x1d\x00\x00\x00\x00\x00\x00\x00\x00')
 prefix_length = 64
@@ -79,50 +54,48 @@ prefix_ext_0 = "IPv6:2001:638:807:21d::/64"
 prefix_ext_1 = "IPv6:2001:0638::/32"
 
 def test_verify_prefix():
-    assert _verify_prefix(
+    assert _verify_prefix_with_cert(
                 _format_to_bytes(ripe_o), 
                 None, 
                 _format_to_bytes(dfn_o), 
                 _format_to_bytes(prefix_ext_0)
             ) == 1
-    assert _verify_prefix(
+    assert _verify_prefix_with_cert(
                 _format_to_bytes(ripe_o),
                 _format_to_bytes(dfn_uni_hpi_o), 
-                _format_to_bytes(router1),
+                _format_to_bytes(router1_o),
                 _format_to_bytes(prefix_ext_0)
             ) == 1
-    assert _verify_prefix(
+    assert _verify_prefix_with_cert(
                 _format_to_bytes(ripe_o), 
                 _format_to_bytes(dfn_uni_hpi_o),
-                _format_to_bytes(router1),
+                _format_to_bytes(router1_o),
                 _format_to_bytes(prefix_ext_1)
             ) == 0
-    assert verify_prefix(ripe_o, None, dfn_o, prefix_b, prefix_length) == True
-    assert verify_prefix(ripe_o, dfn_uni_hpi_o, router1, prefix_b, prefix_length) == True
-    assert verify_prefix(ripe_o, dfn_uni_hpi_o, router2, prefix_b, prefix_length) == False
-    assert verify_prefix(ripe_o, dfn_uni_hpi_o, router3, prefix_b, prefix_length) == False
-    assert verify_prefix(ripe_o, dfn_uni_hpi_o, router1, prefix_b, prefix_length - 32) == False
-    assert verify_prefix(ripe_o, None, dfn_o, prefix_bad, prefix_length) == False
-    assert verify_prefix(ripe_o, dfn_uni_hpi_o, router1, prefix_bad, prefix_length) == False
-
-
-def test_verify_cert():
-    assert verify_cert(ripe_o, None, dfn_o) == True
-    assert verify_cert(ripe_o, dfn_o, uni_o) == True
-    assert verify_cert(ripe_o, None, uni_o) == False
-    assert verify_cert(ripe_o, dfn_uni_hpi_o, router1) == True
-    assert verify_cert(ripe_o, dfn_uni_hpi_o, router2) == False
-    assert verify_cert(ripe_o, dfn_uni_hpi_o, router3) == False
+    assert verify_prefix_with_cert(ripe_o, None, dfn_o, prefix_b, prefix_length) == True
+    assert verify_prefix_with_cert(ripe_o, dfn_o, uni_o, prefix_b, prefix_length) == True
+    assert verify_prefix_with_cert(ripe_o, None, uni_o, prefix_b, prefix_length) == False
+    assert verify_prefix_with_cert(ripe_o, dfn_uni_hpi_o, router1_o, prefix_b, prefix_length) == True
+    assert verify_prefix_with_cert(ripe_o, dfn_uni_hpi_o, router2_o, prefix_b, prefix_length) == False
+    assert verify_prefix_with_cert(ripe_o, dfn_uni_hpi_o, router3_o, prefix_b, prefix_length) == False
+    assert verify_prefix_with_cert(ripe_o, dfn_uni_hpi_o, router1_o, prefix_b, prefix_length - 1) == False
+    assert verify_prefix_with_cert(ripe_o, None, dfn_o, prefix_bad, prefix_length) == False
+    assert verify_prefix_with_cert(ripe_o, dfn_uni_hpi_o, router1_o, prefix_bad, prefix_length) == False
+    assert verify_prefix_with_cert(ripe_m, None, dfn_m, prefix_b, prefix_length) == True
+    assert verify_prefix_with_cert(ripe_m, dfn_m, uni_m, prefix_b, prefix_length) == True
+    assert verify_prefix_with_cert(ripe_m, None, uni_m, prefix_b, prefix_length) == False
+    assert verify_prefix_with_cert(ripe_m, dfn_uni_hpi_m, router0_m, prefix_b, prefix_length) == True
+    assert verify_prefix_with_cert(ripe_m, dfn_uni_hpi_m, router0_m, prefix_b, prefix_length - 1) == False
+    assert verify_prefix_with_cert(ripe_m, None, dfn_m, prefix_bad, prefix_length) == False
 
 def test_verify_signature():
-    assert verify_signature(router0, signed_ra, ra_signature) == True
-    assert verify_signature(router1, signed_ra, ra_signature) == False
-    assert verify_signature(router2, signed_ra, ra_signature) == False
-    assert verify_signature(router3, signed_ra, ra_signature) == False
+    assert verify_signature(router0_o, signed_ra, ra_signature) == True
+    assert verify_signature(router1_o, signed_ra, ra_signature) == False
+    assert verify_signature(router2_o, signed_ra, ra_signature) == False
+    assert verify_signature(router3_o, signed_ra, ra_signature) == False
 
 
 def run_tests():
-    test_verify_cert()
     test_verify_signature()
     test_verify_prefix()
     print("Done.")

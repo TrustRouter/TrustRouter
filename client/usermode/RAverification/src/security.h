@@ -16,6 +16,5 @@
 #define DLLExport 
 #endif
 
-DLLExport int verify_prefix(const char* CAfile, const char* untrusted_certsfile, const char* certfile, char* prefix_as_ext);
+DLLExport int verify_prefix_with_cert(const char* CAfile, const char* untrusted_certsfile, const char* certfile, char* prefix_as_ext);
 DLLExport int verify_signature(const char* certfile, unsigned char* signature, const unsigned char* signed_data, const unsigned int signed_data_length);
-DLLExport int verify_cert(const char* CAfile, const char* certfile, const char* untrusted_certsfile);
