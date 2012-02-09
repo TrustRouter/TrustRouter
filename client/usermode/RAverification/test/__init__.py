@@ -3,13 +3,11 @@
 
 # Note: the tests depend on the certificates, which makes them time-dependent, because the certificates will expire at some point
 
-# we need to temporarily add the path containing the security-module to the python search-path for importing it - works but seems ugly
 import sys
 import os
 module_path = os.path.abspath(__file__)
 module_directory = os.path.split(module_path)[0]
 upper_directory = os.path.split(module_directory)[0]
-sys.path.insert(0, upper_directory)
 
 from RAverification import verify_signature, _verify_signature
 from RAverification import verify_prefix_with_cert, _verify_prefix_with_cert
@@ -99,6 +97,3 @@ def run_tests():
     test_verify_signature()
     test_verify_prefix()
     print("Done.")
-
-if __name__ == "__main__":
-    run_tests()
