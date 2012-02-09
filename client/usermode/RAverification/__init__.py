@@ -55,10 +55,10 @@ def _format_to_bytes(string):
         return bytes(string.encode(sys.stdin.encoding))
 
 def _ipv4_n_to_a(address):
-    return "%u.%u.%u.%u" % tuple(list(address))
+    return "%u.%u.%u.%u" % tuple(address)
 
 def _ipv6_n_to_a(address):
-    return "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x" % tuple(list(address))
+    return "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x" % tuple(address)
 
 def _get_ipaddrblock_ext(prefix, prefix_length):
     assert (len(prefix) == 16) or (len(prefix) == 4) 
