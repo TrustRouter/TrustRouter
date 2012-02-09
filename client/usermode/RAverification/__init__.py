@@ -5,7 +5,6 @@ import os
 import sys
 import platform
 from ctypes import CDLL, c_char_p, c_int
-import RAverification.address.inet as helper
 
 module_path = os.path.abspath(__file__)
 module_directory = os.path.split(module_path)[0]
@@ -55,15 +54,21 @@ def _format_to_bytes(string):
         assert isinstance(string, str)
         return bytes(string.encode(sys.stdin.encoding))
 
+def _ipv4_n_to_a(address):
+    return "%u.%u.%u.%u" % tuple(list(address))
+
+def _ipv6_n_to_a(address):
+    return "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x" % tuple(list(address))
+
 def _get_ipaddrblock_ext(prefix, prefix_length):
     assert (len(prefix) == 16) or (len(prefix) == 4) 
     if len(prefix) == 16:
         ext = "IPv6:"
-        ext += helper.inet_ntop(helper.AF_INET6, prefix)
+        ext += _ipv6_n_to_a(prefix)
 
     if len(prefix) == 4:
         ext = "IPv4:"
-        ext += helper.inet_ntop(helper.AF_INET, prefix)
+        ext += _ipv4_n_to_a(prefix)
 
     ext += "/"
     ext += str(prefix_length)
