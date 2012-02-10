@@ -39,6 +39,10 @@ if not os.path.isfile(lib_directory + lib_name):
 
 libsecurity = CDLL(lib_directory + lib_name)
 
+_verify_cert = libsecurity.verify_cert
+_verify_cert.argtypes = [c_char_p, c_char_p, c_char_p]
+_verify_cert.restype = c_int
+
 _verify_signature = libsecurity.verify_signature
 _verify_signature.argtypes = [c_char_p, c_char_p, c_char_p, c_int]
 _verify_signature.restype = c_int
@@ -74,11 +78,19 @@ def _get_ipaddrblock_ext(prefix, prefix_length):
     ext += str(prefix_length)
     return ext
 
+# OpenSSL Return-Value  : bool
+#               0       : False
+#               1       : True
+#           -1 (error)  : False --> better a false negative than a false positive
 
-# OpenSSL Code : bool
-#       0       : False
-#       1       : True
-# -1 (error)    : False --> better a false negative than a false positive
+# str(path_to_file), str(path_to_file) or None, str(path_to_file)  
+def verify_cert(CAcert_path, untrusted_certs_path, cert_path):
+    valid = _verify_cert(
+        _format_to_bytes(CAcert_path),
+        _format_to_bytes(untrusted_certs_path),      
+        _format_to_bytes(cert_path)  
+    )
+    return 0 < valid
 
 # CA and untrusted are needed, because the resources in cert could be inherited
 # str(path_to_file), str(path_to_file) or None, str(path_to_file), bytearray(prefix), int(prefix_length)
@@ -112,6 +124,5 @@ def verify_signature(signing_cert_path, signed_data, signature):
 
 
 __all__ = [
-    'address',
     'test'
 ]

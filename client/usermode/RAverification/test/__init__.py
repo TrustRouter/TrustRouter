@@ -11,6 +11,7 @@ upper_directory = os.path.split(module_directory)[0]
 
 from RAverification import verify_signature, _verify_signature
 from RAverification import verify_prefix_with_cert, _verify_prefix_with_cert
+from RAverification import verify_cert, _verify_cert
 from RAverification import _format_to_bytes
 
 o_data_directory = module_directory + "/example_data/" + "only_one_block/"
@@ -92,8 +93,18 @@ def test_verify_signature():
     assert verify_signature(router2_o, signed_ra, ra_signature) == False
     assert verify_signature(router3_o, signed_ra, ra_signature) == False
 
+def test_verify_cert():
+    assert verify_cert(ripe_o, None, dfn_o) == True
+    assert verify_cert(ripe_o, dfn_o, uni_o) == True
+    assert verify_cert(ripe_o, None, uni_o) == False
+    assert verify_cert(ripe_o, dfn_uni_hpi_o, router1_o) == True
+    assert verify_cert(ripe_o, dfn_uni_hpi_o, router2_o) == False
+    assert verify_cert(ripe_o, dfn_uni_hpi_o, router3_o) == False
+    assert verify_cert(ripe_m, dfn_uni_hpi_m, router0_m) == True
+
 
 def run_tests():
+    test_verify_cert()
     test_verify_signature()
     test_verify_prefix()
     print("Done.")
