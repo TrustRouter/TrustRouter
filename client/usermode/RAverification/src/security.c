@@ -87,13 +87,6 @@ static STACK_OF(X509) *get_verified_chain(const char* CAfile, const char* untrus
         goto end;        
     }
 
-    lookup = X509_STORE_add_lookup(store, X509_LOOKUP_hash_dir());
-    if (lookup == NULL) {
-        chain = NULL;
-        goto end;
-    }
-
-    X509_LOOKUP_add_dir(lookup, NULL, X509_FILETYPE_DEFAULT);
     cert = load_cert(certfile);
     if (cert == NULL) {
         chain = NULL;
