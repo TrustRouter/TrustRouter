@@ -125,6 +125,7 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 	struct AdvRoute *route;
 	struct AdvRDNSS *rdnss;
 	struct AdvDNSSL *dnssl;
+	struct SignatureOpt *signature;
 	struct timeval time_now;
 	time_t secs_since_last_ra;
 
@@ -500,6 +501,16 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 
 	// TODO add the signature option here
 
+	prefix = iface->AdvPrefixList;
+
+	//signature->type = SEND_OPT_SIGNATURE;
+	//signature->reserved = 0;
+	while(prefix){
+		flog(LOG_WARNING, "Debugprint: %s", prefix->PathToCertificates);
+		prefix = prefix->next;
+	}
+
+
 	iov.iov_len  = len;
 	iov.iov_base = (caddr_t) buff;
 
@@ -543,7 +554,7 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 /* Sends a certification path advertisement message on the given interface
  * to the given IPv6 address. */
 int
-send_cpa(struct interface*, struct in6_addr*){
+send_cpa(struct Interface *iface, struct in6_addr *dest){
 	// TODO implement this method
 	return 0;
 }

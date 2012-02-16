@@ -99,6 +99,13 @@ struct AdvPrefix {
 	struct in6_addr		Prefix;
 	uint8_t			PrefixLen;
 
+	//path to certificate chain for SEND
+	int			IsPathToFileFlag;
+	char		PathToCertificates[PATH_MAX];
+
+	//path to the key file that is used to sign messages
+	char		PathToPrivateKey[PATH_MAX];
+
 	int			AdvOnLinkFlag;
 	int			AdvAutonomousFlag;
 	uint32_t		AdvValidLifetime;
@@ -176,6 +183,15 @@ struct HomeAgentInfo {
 	uint16_t		lifetime;
 };
 
+/* SEND Options (see RFC 3971) */
+#define SEND_OPT_SIGNATURE	12
+struct SignatureOpt {
+	uint8_t			type;			// 1 byte type
+	uint8_t			length;			// 1 byte length
+	uint16_t		reserved;		// 2 byte reserved
+	char			key_hash[16];	// 16 byte key-hash (128 most significant bits of SHA-1 hash of the key)
+	char			**signature;	// variable length PKCS#1 v1.5 signature
+};
 
 /* gram.y */
 int yyparse(void);
@@ -221,6 +237,7 @@ int open_icmpv6_socket(void);
 /* send.c */
 int send_ra(struct Interface *iface, struct in6_addr *dest);
 int send_ra_forall(struct Interface *iface, struct in6_addr *dest);
+int send_cpa(struct Interface *iface, struct in6_addr *dest);
 
 /* process.c */
 void process(struct Interface *, unsigned char *, int,

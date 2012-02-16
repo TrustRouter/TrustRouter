@@ -90,6 +90,9 @@ static struct in6_addr get_prefix6(struct in6_addr const *addr, struct in6_addr 
 %token		T_AdvDefaultPreference
 %token		T_AdvSourceLLAddress
 
+%token		T_CertPathFile
+%token		T_CertPathFolder
+%token		T_PathToPrivateKey
 %token		T_AdvOnLink
 %token		T_AdvAutonomous
 %token		T_AdvValidLifetime
@@ -126,6 +129,7 @@ static struct in6_addr get_prefix6(struct in6_addr const *addr, struct in6_addr 
 %token		T_BAD_TOKEN
 
 %type	<str>	name
+%type	<str>	absolutepath
 %type	<pinfo> prefixdef
 %type	<ainfo> clientslist v6addrlist
 %type	<rinfo>	routedef
@@ -567,7 +571,65 @@ prefixplist	: prefixplist prefixparms
 		| prefixparms
 		;
 
-prefixparms	: T_AdvOnLink SWITCH ';'
+prefixparms	: T_PathToPrivateKey absolutepath ';'
+		{
+			// path to the private key that is used to sign messages
+			if (prefix) {
+				if (prefix->AutoSelected) {
+					struct AdvPrefix *p = prefix;
+					do {
+						strncpy(p->PathToPrivateKey, $2, PATH_MAX-1);
+						p->PathToPrivateKey[PATH_MAX-1] = '\0';
+						p = p->next;
+					} while (p && p->AutoSelected);
+				}
+				else {
+					strncpy(prefix->PathToPrivateKey, $2, PATH_MAX-1);
+					prefix->PathToPrivateKey[PATH_MAX-1] = '\0';
+				}
+			}
+		} 
+		| T_CertPathFile absolutepath ';'
+		{
+			// the complete certificate path in one file and correctly ordered
+			if (prefix) {
+				if (prefix->AutoSelected) {
+					struct AdvPrefix *p = prefix;
+					do {
+						p->IsPathToFileFlag = 1;
+						strncpy(p->PathToCertificates, $2, PATH_MAX-1);
+						p->PathToCertificates[PATH_MAX-1] = '\0';
+						p = p->next;
+					} while (p && p->AutoSelected);
+				}
+				else {
+					prefix->IsPathToFileFlag = 1;
+					strncpy(prefix->PathToCertificates, $2, PATH_MAX-1);
+					prefix->PathToCertificates[PATH_MAX-1] = '\0';
+				}
+			}
+		} 
+		| T_CertPathFolder absolutepath ';'
+		{
+			// the complete certification path in one folder
+			if (prefix) {
+				if (prefix->AutoSelected) {
+					struct AdvPrefix *p = prefix;
+					do {
+						p->IsPathToFileFlag = 0;
+						strncpy(p->PathToCertificates, $2, PATH_MAX-1);
+						p->PathToCertificates[PATH_MAX-1] = '\0';
+						p = p->next;
+					} while (p && p->AutoSelected);
+				}
+				else {
+					prefix->IsPathToFileFlag = 0;
+					strncpy(prefix->PathToCertificates, $2, PATH_MAX-1);
+					prefix->PathToCertificates[PATH_MAX-1] = '\0';
+				}
+			}
+		}
+		| T_AdvOnLink SWITCH ';'
 		{
 			if (prefix) {
 				if (prefix->AutoSelected) {
@@ -670,6 +732,20 @@ prefixparms	: T_AdvOnLink SWITCH ';'
 			}
 		}
 		;
+
+absolutepath	: absolutepath '/' STRING
+		{
+			strcat($1, "/");
+			$$ = strcat($1, $3);
+		}
+		| '/' STRING
+		{
+			char string[PATH_MAX];
+			strcat(string, "/");
+			$$ = strcat(string, $2);
+		}
+		;
+
 
 routedef	: routehead '{' optional_routeplist '}' ';'
 		{

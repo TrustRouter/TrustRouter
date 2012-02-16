@@ -54,7 +54,9 @@ process(struct Interface *ifacel, unsigned char *msg, int len,
 	icmph = (struct icmp6_hdr *) msg;
 
 	if (icmph->icmp6_type != ND_ROUTER_SOLICIT &&
-	    icmph->icmp6_type != ND_ROUTER_ADVERT)
+	    icmph->icmp6_type != ND_ROUTER_ADVERT &&
+	    icmph->icmp6_type != ND_CERTIFICATION_PATH_SOLICIT &&
+	    icmph->icmp6_type != ND_CERTIFICATION_PATH_ADVERT)
 	{
 		/*
 		 *	We just want to listen to RSs and RAs
@@ -85,6 +87,16 @@ process(struct Interface *ifacel, unsigned char *msg, int len,
 				len, addr_str);
 			return;
 		}
+	}
+
+	if (icmph->icmp6_type == ND_CERTIFICATION_PATH_ADVERT)
+	{
+		//TODO verify the correctness of the CPA
+	}
+
+	if (icmph->icmp6_type == ND_CERTIFICATION_PATH_SOLICIT)
+	{
+		//TODO verify the correctness of the CPS
 	}
 
 	if (icmph->icmp6_code != 0)

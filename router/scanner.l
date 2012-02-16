@@ -64,6 +64,9 @@ AdvDefaultLifetime	{ return T_AdvDefaultLifetime; }
 AdvDefaultPreference	{ return T_AdvDefaultPreference; }
 AdvSourceLLAddress	{ return T_AdvSourceLLAddress; }
 
+CertPathFile	{ return T_CertPathFile; }
+CertPathFolder	{ return T_CertPathFolder; }
+PathToPrivateKey	{ return T_PathToPrivateKey; }
 AdvOnLink		{ return T_AdvOnLink; }
 AdvAutonomous		{ return T_AdvAutonomous; }
 AdvValidLifetime	{ return T_AdvValidLifetime; }
@@ -140,7 +143,8 @@ medium		{ yylval.snum = 0; return SIGNEDNUMBER; }
 high		{ yylval.snum = 1; return SIGNEDNUMBER; }
 
 {string}	{
-			static char string[256];
+			/* this reduces the maximum length of the possible values for T_CertPathFile and T_CertPathFolder */
+			static char string[PATH_MAX/*256*/];
 
 			strncpy(string, yytext, sizeof(string));
 			string[sizeof(string)-1] = '\0';

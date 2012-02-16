@@ -52,7 +52,10 @@
 /* Each prefix has an associated: */
 
 #define DFLT_AdvValidLifetime		86400 /* seconds */
-#define DFLT_AdvOnLinkFlag		1
+#define DFLT_IsPathToFileFlag		0
+#define DFLT_PathToCertificates		"" /* empty path to certificates means no signed RAs */
+#define DFLT_AdvOnLinkFlag			1
+#define DFLT_PathToPrivateKey		""
 #define DFLT_AdvPreferredLifetime	14400 /* seconds */
 #define DFLT_AdvAutonomousFlag		1
 #define DFLT_DeprecatePrefixFlag	0

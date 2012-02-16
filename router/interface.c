@@ -51,6 +51,11 @@ prefix_init_defaults(struct AdvPrefix *prefix)
 {
 	memset(prefix, 0, sizeof(struct AdvPrefix));
 
+	prefix->IsPathToFileFlag = DFLT_IsPathToFileFlag;
+	strncpy(prefix->PathToCertificates, DFLT_PathToCertificates, PATH_MAX-1);
+	prefix->PathToCertificates[PATH_MAX-1] = '\0';
+	strncpy(prefix->PathToPrivateKey, DFLT_PathToPrivateKey, PATH_MAX-1);
+	prefix->PathToPrivateKey[PATH_MAX-1] = '\0';
 	prefix->AdvOnLinkFlag = DFLT_AdvOnLinkFlag;
 	prefix->AdvAutonomousFlag = DFLT_AdvAutonomousFlag;
 	prefix->AdvRouterAddr = DFLT_AdvRouterAddr;
