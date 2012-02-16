@@ -76,7 +76,7 @@ VOID InitializeFilter()
 		pDeviceObject,
 		&sCallout,
 		&CalloutId);
-		
+	
 	if (status == STATUS_SUCCESS) {
 		DbgPrint("-+-+-+- Callout register was successful.\n");
 	} else if (status == STATUS_FWP_ALREADY_EXISTS) {
@@ -367,8 +367,8 @@ VOID NTAPI ClassifyFn1(
 	
 	status = FwpsPendOperation0(
 			inMetaValues->completionHandle,
-			&(reinjectInfo->aleCompletionContext));
-			
+			&(reinjectInfo->aleCompletionContext));	
+	
 	if (status == STATUS_FWP_CANNOT_PEND) {
 		DbgPrint("Cannot pend Classify.\n");
 	} else if (status == STATUS_SUCCESS) {
@@ -381,6 +381,23 @@ VOID NTAPI ClassifyFn1(
 		DbgPrint("Error when trying to pend packet: %0x\n", status);
 	}
 			
+	if (!NT_SUCCESS(status)) {
+		classifyOut->actionType = FWP_ACTION_BLOCK;
+		classifyOut->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+		if (clonedNetBufferList != NULL) {
+			FwpsFreeCloneNetBufferList0(clonedNetBufferList, 0);
+		}
+
+		{
+		  	ExAcquireFastMutex(&gListMutex);
+	
+			RemoveTailList(&gReinjectListHead);
+			
+			ExReleaseFastMutex(&gListMutex);
+		}
+	}	
+
+	return;
 }
 
 void printDataFromNetBufferList(NET_BUFFER_LIST *netBufferList) {
