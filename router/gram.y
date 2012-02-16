@@ -740,7 +740,7 @@ absolutepath	: absolutepath '/' STRING
 		}
 		| '/' STRING
 		{
-			char string[PATH_MAX];
+			char string[PATH_MAX] = "";
 			strcat(string, "/");
 			$$ = strcat(string, $2);
 		}

@@ -265,6 +265,8 @@ main(int argc, char *argv[])
 	}
 
 	if (configtest) {
+		dlog(LOG_DEBUG, 3, "Path to Certificate is: %s\n", IfaceList->AdvPrefixList->PathToCertificates);
+		dlog(LOG_DEBUG, 3, "Path to Private Key is: %s\n", IfaceList->AdvPrefixList->PathToPrivateKey);
 		fprintf(stderr, "Syntax OK\n");
 		exit(0);
 	}
