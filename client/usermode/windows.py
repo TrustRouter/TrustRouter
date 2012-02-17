@@ -9,6 +9,8 @@ class WindowsAdapter(object):
     POINTER_LENGTH = struct.calcsize("P")
     ACTION_BLOCK = "B"
     ACTION_PERMIT = "P"
+    # This has to be received from Kernel Driver...
+    SCOPE_ID = 11
 
     def __init__(self, shared_=None):
         self.callout = win32file.CreateFile(
@@ -36,7 +38,7 @@ class WindowsAdapter(object):
                 print("Tried ReadFile, got nothing.")
                 pass
 
-            time.sleep(10)
+            time.sleep(1)
 
         return result_buffer
 
@@ -49,20 +51,16 @@ class WindowsAdapter(object):
             for packet_byte in packet_byte_array:
                 print ("\\x%02x" % packet_byte, end="")
 
-            reject_callback = self._get_callback(address_byte_array, self.ACTION_BLOCK)
-            accept_callback = self._get_callback(address_byte_array, self.ACTION_PERMIT)
-
-            self.shared.new_packet(packet_byte_array, accept_callback, reject_callback)
-
-
-    def _get_callback(self, address_byte_array, action):
-        def callback():
             result = bytearray()
             result.extend(address_byte_array)
-            result.extend(struct.pack("c", bytes(action, encoding="ascii")));
 
+            if self.shared.verify_router_advertisment(packet_byte_array, self.SCOPE_ID):                
+                action = self.ACTION_PERMIT
+            else:
+                action = self.ACTION_BLOCK
+                
+            result.extend(struct.pack("c", bytes(action, encoding="ascii")))
             win32file.WriteFile(self.callout, result, None)
-        return callback
 
 
 if __name__ == "__main__":
