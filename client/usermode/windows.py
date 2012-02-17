@@ -7,10 +7,9 @@ import shared
 class WindowsAdapter(object):
     CALLOUT_DRIVER_NAME = "\\\\.\\SendCallout"
     POINTER_LENGTH = struct.calcsize("P")
+    UNSIGNED_INTEGER_LENGTH = struct.calcsize("I")
     ACTION_BLOCK = "B"
     ACTION_PERMIT = "P"
-    # This has to be received from Kernel Driver...
-    SCOPE_ID = 11
 
     def __init__(self, shared_=None):
         self.callout = win32file.CreateFile(
@@ -46,15 +45,18 @@ class WindowsAdapter(object):
         while True:
             result_buffer = self.read_from_callout_until_success()
             address_byte_array = bytearray(result_buffer[:self.POINTER_LENGTH])
-            packet_byte_array = bytearray(result_buffer[self.POINTER_LENGTH:])
+            interface_index = bytearray(result_buffer[self.POINTER_LENGTH:self.POINTER_LENGTH + self.UNSIGNED_INTEGER_LENGTH])
+            packet_byte_array = bytearray(result_buffer[(self.POINTER_LENGTH + self.UNSIGNED_INTEGER_LENGTH):])
 
-            for packet_byte in packet_byte_array:
-                print ("\\x%02x" % packet_byte, end="")
+            interface_index = struct.unpack("@I", interface_index)[0]
+
+            #for packet_byte in packet_byte_array:
+            #   print ("\\x%02x" % packet_byte, end="")
 
             result = bytearray()
             result.extend(address_byte_array)
 
-            if self.shared.verify_router_advertisment(packet_byte_array, self.SCOPE_ID):                
+            if self.shared.verify_router_advertisment(packet_byte_array, interface_index):                
                 action = self.ACTION_PERMIT
             else:
                 action = self.ACTION_BLOCK
