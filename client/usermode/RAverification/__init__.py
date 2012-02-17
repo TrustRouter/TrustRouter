@@ -87,6 +87,8 @@ def _get_ipaddrblock_ext(prefix, prefix_length):
     return ext
 
 def _create_temp_untrusted(untrusted_certs):
+    if len(untrusted_certs) == 0:
+        return None
     untrusted_file_tuple = tempfile.mkstemp()
     untrusted_file_handle = untrusted_file_tuple[0]
     untrusted_path = untrusted_file_tuple[1]
@@ -122,7 +124,8 @@ def verify_cert(CAcert_path, untrusted_certs, cert):
             _format_to_bytes(tmp_cert_path)  
         )
     finally:
-        os.remove(tmp_untrusted_path)
+        if tmp_untrusted_path != None:
+            os.remove(tmp_untrusted_path)
         os.remove(tmp_cert_path)
     return 0 < valid
 
@@ -141,7 +144,8 @@ def verify_prefix_with_cert(CAcert_path, untrusted_certs, cert, prefix, prefix_l
             _format_to_bytes(prefix_ext)
         )
     finally:
-        os.remove(tmp_untrusted_path)
+        if tmp_untrusted_path != None:
+            os.remove(tmp_untrusted_path)
         os.remove(tmp_cert_path)
     return 0 < valid
 
