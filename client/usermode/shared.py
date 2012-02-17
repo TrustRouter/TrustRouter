@@ -1,14 +1,15 @@
-import struct
 import random
 import socket
+import struct
+import time
 
 from packet import IPv6, ICMPv6_NDP_RSASignature, IPPROTO_ICMPV6, ICMPv6_NDP_CPA, ICMPv6_NDP_Certificate, ICMPv6_NDP_PrefixInfo
 import RAverification
 
 # see RFC 3971
 CGA_MESSAGE_TYPE_TAG = b"\x08\x6F\xCA\x5E\x10\xB2\x00\xC9\x9C\x8C\xE0\x01\x64\x27\x7C\x08"
-CA_PATH = '/Users/Mike/Desktop/MPRepro/TrustRouter/client/usermode/RAverification/test/example_data/only_one_block/ripe/ripe.cer'
-
+#CA_PATH = '/Users/Mike/Desktop/MPRepro/TrustRouter/client/usermode/RAverification/test/example_data/only_one_block/ripe/ripe.cer'
+CA_PATH = 'C:\\Users\\Thomas\\Uni\\SEND\\VMshare\\TrustRouter\\client\\usermode\\RAverification\\test\\example_data\\only_one_block\\ripe\\ripe.cer'
 class Shared(object):
 
     def verify_router_advertisment(self, data, scopeid):
@@ -53,23 +54,30 @@ class Shared(object):
         # send to all routers multicast address
         # addr = ("ff02::2", 0, 0, scopeid)
         # NDProtector has a bug when sending to all routers mutlicast, using unicast instead
-        addr = (socket.inet_ntop(socket.AF_INET6, bytes(packet["source_addr"])), 0, 0, scopeid)
+        addr = (self._ipv6_n_to_a(packet["source_addr"]), 0, 0, scopeid)
         sock.sendto(cps, addr)
+        sock.settimeout(2)
 
         # receive CPAs
         intermediate_certs = []
         router_certs = []
 
-        while True:
-            cpa_data, from_addr = sock.recvfrom(65535)
-            if cpa_data[0] == 148:
-                print("yeah")
+        starttime = time.time()
+
+        while time.time() - starttime < 15:
+            try:
+                cpa_data, from_addr = sock.recvfrom(65535)
+            except socket.timeout:
+                print("Timeout")
+                continue
+
             if from_addr[3] != scopeid or cpa_data[0] != 149:
                 continue
             cpa = ICMPv6_NDP_CPA(cpa_data)
             if cpa["identifier"] != identifier and cpa["identifier"] != 0:
                 continue
-            print("1")
+            print(cpa["component"])
+            
             for cert_option in cpa.options:
                 sdg = open("./comp" + str(cpa["component"]), "wb")
                 sdg.write(cert_option["certificate"])
@@ -83,6 +91,7 @@ class Shared(object):
                     # TODO: more than one certificate option
                     break
             for router_cert in router_certs:
+                print("Cert found")
                 if self._verify(intermediate_certs,
                                 router_cert,
                                 prefix_option,
@@ -93,18 +102,26 @@ class Shared(object):
         print("Invalid Signature --> reject")
         return False
 
+    def _ipv6_n_to_a(self, address):
+        # Needed to convert router's IP address (normally we would send to router multicast address)
+        return "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x" % tuple(address)
     
     def _verify(self, intermediate_certs, router_cert, prefix_option, signed_data, rsa_option):
-        return RAverification.verify_prefix_with_cert(
+        result1 =  RAverification.verify_prefix_with_cert(
                     CA_PATH,
                     intermediate_certs,
                     router_cert, prefix_option["prefix"],
                     prefix_option["prefix_length"]
-                ) and RAverification.verify_signature(
+                )
+        result2 = RAverification.verify_signature(
                     router_cert,
                     signed_data,
                     rsa_option["digital_signature"]
                 )
+        print("Result 1 ", result1)
+        print("Result 2 ", result2)
+
+        return result1 and result2 
 
 
     def _remove_padding(self, data):
