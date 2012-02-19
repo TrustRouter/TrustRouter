@@ -17,7 +17,7 @@ class Shared(object):
         for anchor in trust_anchors.certificates:
             self.trust_anchors.add(anchor)
 
-    def verify_router_advertisment(self, data, scopeid):
+    def verify_ra(self, data, scopeid):
         ra = packet.IPv6(data)
         rsa_option, prefix_options, icmp_data = self._extract_info(ra)
 

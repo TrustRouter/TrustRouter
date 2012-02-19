@@ -35,7 +35,7 @@ class MacOSAdapter(object):
             payload_length = struct.unpack("!H", packet[4:6])[0]
             packet.extend(self._readBytes(payload_length))
 
-            if self.shared.verify_router_advertisment(packet, scopeid):
+            if self.shared.verify_ra(packet, scopeid):
                 self._send_result(packet_id, self.ACTION_ACCEPT)
             else:
                 self._send_result(packet_id, self.ACTION_ACCEPT)
