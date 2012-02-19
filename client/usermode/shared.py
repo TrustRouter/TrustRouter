@@ -34,9 +34,16 @@ class Shared(object):
             return False
         prefix_option = prefix_options[0]
 
+        prefix = "IPv6:%s/%d" % (
+            self._print_ipv6_addr(prefix_option["prefix"]),
+            prefix_option["prefix_length"]
+        )
         signed_data = self._get_signed_data(ra, icmp_data)
+        signature = rsa_option["digital_signature"]
 
-        sock = socket.socket(socket.AF_INET6, socket.SOCK_RAW, packet.IPPROTO_ICMPV6)        
+        sock = socket.socket(socket.AF_INET6,
+                             socket.SOCK_RAW,
+                             packet.IPPROTO_ICMPV6)        
         identifier = self._send_cps(sock, scopeid, ra["source_addr"])
 
         # process CPAs
@@ -51,13 +58,7 @@ class Shared(object):
             if cpa is None:
                 continue
             
-            self._process_cert_options(cpa, intermediate_certs, router_certs)
-
-            prefix = "IPv6:%s/%d" % (
-                self._print_ipv6_addr(prefix_option["prefix"]),
-                prefix_option["prefix_length"]
-            )
-            signature = rsa_option["digital_signature"]
+            self._extract_cert_options(cpa, intermediate_certs, router_certs)
 
             for cert in router_certs:
                 chain = cert.get_chain(self.trust_anchors, intermediate_certs)
@@ -125,7 +126,7 @@ class Shared(object):
         cps = struct.pack("!BBHHH", 148, 0, 0, identifier, 65535)
         # send to all routers multicast address
         # addr = ("ff02::2", 0, 0, scopeid)
-        # NDProtector has a bug when sending to all routers mutlicast, using unicast instead
+        # NDProtector bug when sending to mutlicast addr, use unicast instead
         addr = self._print_ipv6_addr(address), 0, 0, scopeid
         sock.sendto(cps, addr)
         return identifier
@@ -149,7 +150,7 @@ class Shared(object):
         return cpa
     
 
-    def _process_cert_options(self, cpa, intermediate_certs, router_certs):
+    def _extract_cert_options(self, cpa, intermediate_certs, router_certs):
         for cert_option in cpa.options:
             if isinstance(cert_option, packet.ICMPv6_NDP_Certificate):
                 if cpa["component"] != 0:
