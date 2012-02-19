@@ -4,13 +4,18 @@ import struct
 import time
 
 import packet
-import RAverification
+import security
+import trust_anchors
 
 # see RFC 3971
 CGA_MESSAGE_TYPE_TAG = b"\x08\x6F\xCA\x5E\x10\xB2\x00\xC9\x9C\x8C\xE0\x01\x64\x27\x7C\x08"
-CA_PATH = '/Users/Mike/Desktop/TrustRouter/client/usermode/RAverification/test/example_data/only_one_block/ripe/ripe.cer'
-#CA_PATH = 'C:\\Users\\Thomas\\Uni\\SEND\\VMshare\\TrustRouter\\client\\usermode\\RAverification\\test\\example_data\\only_one_block\\ripe\\ripe.cer'
+
 class Shared(object):
+
+    def __init__(self):
+        self.trust_anchors = security.CertificateStack()
+        for anchor in trust_anchors.certificates:
+            self.trust_anchors.add(anchor)
 
     def verify_router_advertisment(self, data, scopeid):
         ra = packet.IPv6(data)
@@ -35,7 +40,7 @@ class Shared(object):
         identifier = self._send_cps(sock, scopeid, ra["source_addr"])
 
         # process CPAs
-        intermediate_certs = []
+        intermediate_certs = security.CertificateStack()
         router_certs = []
 
         sock.settimeout(2)
@@ -43,19 +48,26 @@ class Shared(object):
 
         while time.time() - starttime < 15:
             cpa = self._receive_cpa(sock, scopeid, identifier)
-            
             if cpa is None:
                 continue
             
             self._process_cert_options(cpa, intermediate_certs, router_certs)
 
-            if self._verify(router_certs,
-                            intermediate_certs,
-                            prefix_option,
-                            signed_data,
-                            rsa_option["digital_signature"]):
-                print("Valid signature --> accept")
-                return True
+            prefix = "IPv6:%s/%d" % (
+                self._print_ipv6_addr(prefix_option["prefix"]),
+                prefix_option["prefix_length"]
+            )
+            signature = rsa_option["digital_signature"]
+
+            for cert in router_certs:
+                chain = cert.get_chain(self.trust_anchors, intermediate_certs)
+                if chain is None:
+                    continue
+                if not chain.verify_prefix(prefix):
+                    continue
+                if cert.verify_signature(signed_data, signature):
+                    print("Valid signature --> accept")
+                    return True
                 
         print("Invalid Signature --> reject")
         sock.close()
@@ -114,7 +126,7 @@ class Shared(object):
         # send to all routers multicast address
         # addr = ("ff02::2", 0, 0, scopeid)
         # NDProtector has a bug when sending to all routers mutlicast, using unicast instead
-        addr = self._ipv6_n_to_a(address), 0, 0, scopeid
+        addr = self._print_ipv6_addr(address), 0, 0, scopeid
         sock.sendto(cps, addr)
         return identifier
 
@@ -140,40 +152,15 @@ class Shared(object):
     def _process_cert_options(self, cpa, intermediate_certs, router_certs):
         for cert_option in cpa.options:
             if isinstance(cert_option, packet.ICMPv6_NDP_Certificate):
-                cert = self._remove_padding(cert_option["certificate"])
                 if cpa["component"] != 0:
-                    intermediate_certs.append(cert)
+                    intermediate_certs.add(cert_option["certificate"])
                 else:
+                    cert = security.Certificate(cert_option["certificate"])
                     router_certs.append(cert)
                 # TODO: more than one certificate option
                 break
 
-    
-    def _verify(self, router_certs, intermediate_certs, prefix_option, signed_data, signature):
-        for router_cert in router_certs:                
-            if not RAverification.verify_prefix_with_cert(
-                    CA_PATH,
-                    intermediate_certs,
-                    router_cert, prefix_option["prefix"],
-                    prefix_option["prefix_length"]):
-                continue            
-            
-            if RAverification.verify_signature(
-                    router_cert,
-                    signed_data,
-                    signature):
-                return True
-        
-        return False
 
-
-    def _ipv6_n_to_a(self, address):
-        # Needed to convert router's IP address (normally we would send to router multicast address)
+    def _print_ipv6_addr(self, address):
         return "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x" % tuple(address)
-    
-
-    def _remove_padding(self, data):
-        for i in range(len(data) - 1, -1, -1):
-            if data[i] != 0:
-                return data[:i+1]
             
