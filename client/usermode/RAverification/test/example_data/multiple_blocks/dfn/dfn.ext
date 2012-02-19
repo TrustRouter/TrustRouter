@@ -1,8 +1,0 @@
-extensions = x509v3
-
-[ x509v3 ]
-authorityKeyIdentifier	= keyid
-subjectKeyIdentifier    = hash
-basicConstraints	= critical, CA:true
-keyUsage         	= critical, keyCertSign,cRLSign
-sbgp-ipAddrBlock	= critical, IPv4:141.89.0.0/16, IPv4:87.77.0.0/16,  IPv4:141.23.0.0/16, IPv6:2001:0638::/32
