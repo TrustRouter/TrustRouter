@@ -99,24 +99,6 @@ prefix_ext_0 = "IPv6:2001:638:807:21d::/64"
 prefix_ext_1 = "IPv6:2001:0638::/32"
 
 def test_verify_prefix():
-    assert _verify_prefix_with_cert(
-                _format_to_bytes(ripe_o_pem_path), 
-                None, 
-                _format_to_bytes(dfn_o_pem_path), 
-                _format_to_bytes(prefix_ext_0)
-            ) == 1
-    assert _verify_prefix_with_cert(
-                _format_to_bytes(ripe_o_pem_path),
-                _format_to_bytes(dfn_uni_hpi_o_path), 
-                _format_to_bytes(router1_o_pem_path),
-                _format_to_bytes(prefix_ext_0)
-            ) == 1
-    assert _verify_prefix_with_cert(
-                _format_to_bytes(ripe_o_pem_path), 
-                _format_to_bytes(dfn_uni_hpi_o_path),
-                _format_to_bytes(router1_o_pem_path),
-                _format_to_bytes(prefix_ext_1)
-            ) == 0
     assert verify_prefix_with_cert(
         ripe_o_pem_path,
         [],
