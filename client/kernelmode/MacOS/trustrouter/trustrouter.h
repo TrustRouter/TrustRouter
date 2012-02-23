@@ -19,8 +19,8 @@ static errno_t ctl_disconnect_fn(kern_ctl_ref kctlref, u_int32_t unit, void *uni
 static errno_t ctl_send_fn(kern_ctl_ref kctlref, u_int32_t unit, void *unitinfo, mbuf_t m, int flags);
 
 typedef enum action {
-    ACCEPT = 1,
-    REJECT = 0
+    ACCEPT = 0,
+    REJECT = 1
 } action;
 
 struct pktQueueItem {

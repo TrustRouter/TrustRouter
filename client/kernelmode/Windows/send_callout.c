@@ -59,16 +59,12 @@ NTSTATUS DriverEntry(
 VOID InitializeFilter() 
 {
 	NTSTATUS status;
-	FWPM_FILTER0 fwpFilter;
+	
 	FWPM_SUBLAYER0 fwpFilterSubLayer;
-	FWPM_FILTER_CONDITION0 fwpConditions[1];
 	FWPS_CALLOUT1 sCallout;
-	FWPM_CALLOUT0 mCallout;	
 	UINT32 CalloutId;
 	
-	RtlZeroMemory(&fwpFilter, sizeof(FWPM_FILTER0));
 	RtlZeroMemory(&sCallout, sizeof(FWPS_CALLOUT1));
-	RtlZeroMemory(&mCallout, sizeof(FWPM_CALLOUT0));
 	
 	sCallout.calloutKey = SEND_CALLOUT_DRIVER;
 	sCallout.flags = 0;
@@ -81,45 +77,13 @@ VOID InitializeFilter()
 		&sCallout,
 		&CalloutId);
 		
-	status = FwpmEngineOpen0(
-		NULL, 
-		RPC_C_AUTHN_WINNT, 
-		NULL,
-		NULL, 
-		&EngineHandle);
-	
-	mCallout.calloutKey = SEND_CALLOUT_DRIVER;
-	mCallout.displayData.name = L"ICMPv6 Router Advertisment callout";
-	mCallout.displayData.description = L"Callout driver inspecting all ICMPv6 Router Advertisment";
-	mCallout.flags = 0;
-	mCallout.applicableLayer = FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6;	
-	
-	status = FwpmCalloutAdd0(
-		EngineHandle,
-		&mCallout,
-		NULL,
-		NULL);
-	
-	fwpConditions[0].fieldKey = FWPM_CONDITION_ORIGINAL_ICMP_TYPE;
-	fwpConditions[0].matchType = FWP_MATCH_EQUAL;
-	fwpConditions[0].conditionValue.type = FWP_UINT16;
-	fwpConditions[0].conditionValue.uint16 = 134; // Router Advertisment code
-	
-	fwpFilter.numFilterConditions = 1;
-	fwpFilter.filterCondition = fwpConditions;	
-	fwpFilter.layerKey =  FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6;
-	fwpFilter.action.type = FWP_ACTION_CALLOUT_INSPECTION;
-	fwpFilter.action.calloutKey = SEND_CALLOUT_DRIVER;
-	fwpFilter.subLayerKey = FWPM_SUBLAYER_UNIVERSAL;
-	fwpFilter.weight.type = FWP_EMPTY; // auto-weight.
-	fwpFilter.displayData.name = L"ICMPv6 Router Advertisment inspection";
-	fwpFilter.displayData.description = L"Callout filter inspecting all ICMPv6 Router Advertisment";
-
-	status = FwpmFilterAdd0(
-		EngineHandle,
-		&fwpFilter,
-		NULL,
-		&FilterId);
+	if (status == STATUS_SUCCESS) {
+		DbgPrint("-+-+-+- Callout register was successful.\n");
+	} else if (status == STATUS_FWP_ALREADY_EXISTS) {
+		DbgPrint("-+-+-+- Callout could not be registered.\n");
+	} else {
+		DbgPrint("-+-+-+- Callout could not be registered. Status: %0x\n", status);
+	}
 }
 
 NTSTATUS SendCalloutCreate(PDEVICE_OBJECT pDeviceObject, PIRP Irp) {
@@ -137,6 +101,7 @@ NTSTATUS SendCalloutRead(PDEVICE_OBJECT pDeviceObject, PIRP Irp) {
 	PCHAR pReturnData;
     UINT packetByteCount, returnDataCount;
 	UINT dwDataRead = 0;
+	UINT totalReadBytes, interfaceId = 0;
 	
 	//if(pReturnData != NULL) {
 	if (!IsListEmpty(&gReinjectListHead)) {
@@ -160,6 +125,7 @@ NTSTATUS SendCalloutRead(PDEVICE_OBJECT pDeviceObject, PIRP Irp) {
 		
 		if (pReinjectInfoToRead != NULL) {			
 			
+			interfaceId = pReinjectInfoToRead->interfaceIndex;
 			// Get the packet data from the Net Buffer.
 			pNetBuffer = NET_BUFFER_LIST_FIRST_NB(pReinjectInfoToRead->netBufferList);
 
@@ -183,15 +149,26 @@ NTSTATUS SendCalloutRead(PDEVICE_OBJECT pDeviceObject, PIRP Irp) {
 			if(pIoStackIrp)
 			{
 				pReadDataBuffer = (PCHAR)Irp->AssociatedIrp.SystemBuffer;
-				if(pReadDataBuffer && pIoStackIrp->Parameters.Read.Length >= packetByteCount)
+				totalReadBytes = packetByteCount + sizeof(&interfaceId) + sizeof(pReinjectInfoToRead);
+				
+				if(pReadDataBuffer && pIoStackIrp->Parameters.Read.Length >= totalReadBytes)
 				{
-					RtlCopyMemory(pReadDataBuffer, &pReinjectInfoToRead, sizeof(pReinjectInfoToRead));
-					DbgPrint("READ: Copied %p to buffer.\n", pReinjectInfoToRead);
-					RtlCopyMemory(pReadDataBuffer + sizeof(ICMP_V6_REINJECT_INFO *), pReturnData, packetByteCount);
+					// First, write the address of the reinject structure into the buffer.
+					// It is used to identify the packet when writing back to this driver.
+					RtlCopyMemory(pReadDataBuffer, &pReinjectInfoToRead, sizeof(&pReinjectInfoToRead));
+					DbgPrint("READ: Copied Address %p to buffer.\n", pReinjectInfoToRead);
+					// Now write the interface identifiert, a 32-bit unsigned integer, to the buffer.
+					// It is needed as the scope id in userland.
+					RtlCopyMemory(pReadDataBuffer + sizeof(&pReinjectInfoToRead), &interfaceId, sizeof(&interfaceId));
+					DbgPrint("READ: Copied Interface Identifier %d to buffer.\n", interfaceId);
+					// Now, write the byte content of the packet into the buffer.
+					RtlCopyMemory(pReadDataBuffer + sizeof(&pReinjectInfoToRead) + sizeof(&interfaceId), pReturnData, packetByteCount);
+					DbgPrint("READ: Copied Packet Data to buffer.\n");
 					dwDataRead = packetByteCount + sizeof(ICMP_V6_REINJECT_INFO *);
-					status = STATUS_SUCCESS;
 					
 					pReinjectInfoToRead->hasBeenRead = TRUE;
+					
+					status = STATUS_SUCCESS;
 				}
 			}
 		}		
@@ -341,7 +318,7 @@ VOID NTAPI ClassifyFn1(
 								  NULL);
 	
 	DbgPrint("Original Net Buffer List:\n");
-	printDataFromNetBufferList(netBufferList);
+	//printDataFromNetBufferList(netBufferList);
 	
 	// Make a shallow copy of the net buffer list.
 	FwpsAllocateCloneNetBufferList0(
@@ -356,7 +333,7 @@ VOID NTAPI ClassifyFn1(
 		// FALSE);
 		
 	DbgPrint("AAAAAAAA Cloned Net Buffer List:\n");
-	printDataFromNetBufferList(clonedNetBufferList);
+	//printDataFromNetBufferList(clonedNetBufferList);
 	
 	// if (packetByteCount >= 97) {
 		// DbgPrint("Packet Data from Net Buffer (Prefix):");	
@@ -386,6 +363,7 @@ VOID NTAPI ClassifyFn1(
 	reinjectInfo->injectionHandle = injectionHandle;
 	reinjectInfo->af = AF_INET6;
 	reinjectInfo->interfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_INTERFACE_INDEX].value.uint32;
+	DbgPrint("InterfaceIndex is %d\n", reinjectInfo->interfaceIndex);
 	reinjectInfo->subInterfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_SUB_INTERFACE_INDEX].value.uint32;
 	reinjectInfo->hasBeenRead = FALSE;
 	
@@ -409,6 +387,10 @@ VOID NTAPI ClassifyFn1(
 		DbgPrint("Cannot pend Classify.\n");
 	} else if (status == STATUS_SUCCESS) {
 		DbgPrint("Packet set to 'pending' successfully.\n");
+	} else if (status == STATUS_FWP_NULL_POINTER) {
+		DbgPrint("Invalid parameters for pending. CompletionHandle is: %0x\n", inMetaValues->completionHandle);
+	} else if (status == STATUS_FWP_TCPIP_NOT_READY) {
+		DbgPrint("TCPIP stack is not ready.\n");
 	} else {
 		DbgPrint("Error when trying to pend packet: %0x\n", status);
 	}
@@ -577,16 +559,6 @@ VOID DriverUnload(IN PDRIVER_OBJECT pDriverObject)
 	NTSTATUS status = STATUS_SUCCESS;
 	
 	status = FwpsCalloutUnregisterByKey0(&SEND_CALLOUT_DRIVER);
-	
-	status = FwpmFilterDeleteById0(
-		EngineHandle,
-		FilterId
-	);	
-	
-	status = FwpmEngineClose0(EngineHandle);
-	EngineHandle = NULL;
-
-	
 	
 	//FwpmCalloutDeleteByKey0(
 	//	EngineHandle,

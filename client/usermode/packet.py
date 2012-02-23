@@ -4,13 +4,19 @@ import socket
 from collections import OrderedDict
 
 ICMPv6_TYPES = {
-    134 : "ICMPv6_NDP_RA"
+    134 : "ICMPv6_NDP_RA",
+    149 : "ICMPv6_NDP_CPA"
 }
 
 ICMPv6_NDP_OPTIONS = {
     3 : "ICMPv6_NDP_PrefixInfo",
-    12 : "ICMPv6_NDP_RSASignature"
+    12 : "ICMPv6_NDP_RSASignature",
+    16 : "ICMPv6_NDP_Certificate"
 }
+
+# On Windows, we cannot use socket.IPPROTO_ICMPV6 because it's not
+# included in Python, see http://bugs.python.org/issue6926    
+IPPROTO_ICMPV6 = 58
 
 class AbstractPacket(object):
     def parse(self, binary):
@@ -19,11 +25,12 @@ class AbstractPacket(object):
             binary, bit_offset = field.parse(binary, bit_offset)
         return binary
 
-    def get_value(self, field):
-        return self.fields[field].value
+    def __getitem__(self, key):
+        return self.fields[key].value
 
 
 class IPv6(AbstractPacket):
+
     def __init__(self, binary):
         self.fields = OrderedDict([
             ("version", BitField(4)),
@@ -42,8 +49,8 @@ class IPv6(AbstractPacket):
           
         
     def get_payload_class(self, binary):
-        next_header = self.get_value("next_header")
-        if next_header == socket.IPPROTO_ICMPV6:
+        next_header = self["next_header"]
+        if next_header == IPPROTO_ICMPV6:
             icmp_type = binary[0]
             try:
                 return globals()[ICMPv6_TYPES[icmp_type]]
@@ -57,24 +64,11 @@ class IPv6(AbstractPacket):
         self.payload = cls(binary)
 
 
-class ICMPv6_NDP_RA(AbstractPacket):
+class AbstractICMPPacket(AbstractPacket):
     def __init__(self, binary):
-        self.fields = OrderedDict([
-            ("type", BitField(8)),
-            ("code", BitField(8)),
-            ("checksum", BitField(16)),
-            ("hop_limit", BitField(8)),
-            ("managed", BitField(1)),
-            ("other", BitField(1)),
-            ("reserved", BitField(6)),
-            ("router_lifetime", BitField(16)),
-            ("reachable_timer", BitField(32)),
-            ("retrans_timer", BitField(32))
-        ])
         self.options = []
         remaining_binary = self.parse(binary)
         self.binary = binary[:len(binary) - len(remaining_binary)]
-        # ToDo: Parse IPv6 Extensions
         self.parse_options(remaining_binary)
 
     
@@ -93,8 +87,55 @@ class ICMPv6_NDP_RA(AbstractPacket):
             return globals()[class_name]
         except KeyError:
             raise Exception("unsupported ICMPv6 NDP option: %d" % option_type)
-            
-            
+
+
+class ICMPv6_NDP_RA(AbstractICMPPacket):
+    def __init__(self, binary):
+        self.fields = OrderedDict([
+            ("type", BitField(8)),
+            ("code", BitField(8)),
+            ("checksum", BitField(16)),
+            ("hop_limit", BitField(8)),
+            ("managed", BitField(1)),
+            ("other", BitField(1)),
+            ("reserved", BitField(6)),
+            ("router_lifetime", BitField(16)),
+            ("reachable_timer", BitField(32)),
+            ("retrans_timer", BitField(32))
+        ])
+        super(ICMPv6_NDP_RA, self).__init__(binary)
+
+
+class ICMPv6_NDP_CPA(AbstractICMPPacket):
+    def __init__(self, binary):
+        self.fields = OrderedDict([
+            ("type", BitField(8)),
+            ("code", BitField(8)),
+            ("checksum", BitField(16)),
+            ("identifier", BitField(16)),
+            ("all_component", BitField(16)),
+            ("component", BitField(16)),
+            ("reserved", BitField(16)),
+        ])
+        super(ICMPv6_NDP_CPA, self).__init__(binary)
+
+
+class ICMPv6_NDP_Certificate(AbstractPacket):
+    def __init__(self, binary):
+        self.fields = OrderedDict([
+            ("type", BitField(8)),
+            ("length", BitField(8)),
+            ("cert_type", BitField(8)),
+            ("reserved", BitField(8)),
+            ("certificate", VarByteField(self._certificate_len))
+        ])
+        remaining_binary = self.parse(binary)
+        self.binary = binary[:len(binary) - len(remaining_binary)]
+
+    def _certificate_len(self):
+        return self["length"] * 8 - 4
+
+
 class ICMPv6_NDP_PrefixInfo(AbstractPacket):
     def __init__(self, binary):
         self.fields = OrderedDict([
@@ -126,7 +167,7 @@ class ICMPv6_NDP_RSASignature(AbstractPacket):
         self.binary = binary[:len(binary) - len(remaining_binary)]
 
     def _sig_len(self):
-        return (self.get_value("length") * 8 - 20)
+        return (self["length"] * 8 - 20)
 
 
 class ICMPv6_NDP_Option(AbstractPacket):
@@ -140,7 +181,7 @@ class ICMPv6_NDP_Option(AbstractPacket):
 
     def parse(self, binary):
         binary = super(ICMPv6_NDP_Option, self).parse(binary)
-        bytes_done = self.get_value("length") * 8 - 2
+        bytes_done = self["length"] * 8 - 2
         return binary[bytes_done:]
 
 

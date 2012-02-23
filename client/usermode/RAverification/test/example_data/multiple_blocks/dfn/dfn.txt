@@ -1,0 +1,90 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 1 (0x1)
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: CN=ripe-ncc-ta
+        Validity
+            Not Before: Feb 23 15:42:06 2012 GMT
+            Not After : Jan  1 15:42:06 2022 GMT
+        Subject: CN=DFN
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:9f:35:7f:ba:cc:b8:00:57:db:2d:00:00:1c:b6:
+                    74:10:d1:a7:ed:7c:9e:ff:3f:27:ed:a7:0f:ca:d0:
+                    71:80:a2:57:70:04:14:e2:cf:00:02:d4:04:3a:bd:
+                    dc:e8:7b:25:ec:b9:73:4f:0e:c6:bc:19:b2:f0:78:
+                    f3:bc:b6:de:1e:f0:5a:49:7b:7c:15:8d:c6:72:da:
+                    15:ab:a4:4b:a4:03:cf:94:ef:e3:e0:90:37:c6:7d:
+                    99:b7:04:8b:2a:f9:da:0d:42:f3:de:48:85:15:3a:
+                    a0:44:f6:92:60:27:a3:f4:69:07:28:25:ea:7f:4d:
+                    98:03:e0:d4:35:7e:56:d1:19:e9:1d:c1:23:b7:95:
+                    62:01:38:02:4a:07:61:4c:d4:93:f3:3a:df:b1:68:
+                    e2:f7:ae:4a:e4:c3:af:f5:61:9f:0b:f8:04:82:dd:
+                    bd:7f:69:4b:f8:7f:09:53:30:f4:05:91:8e:2e:3d:
+                    3d:9d:1b:5b:a6:3e:ed:1a:e7:fc:04:a2:e9:f4:cf:
+                    6b:de:64:0f:62:42:6e:a6:a0:85:63:2a:6d:30:bd:
+                    40:79:9c:90:fd:83:1c:52:c4:4d:db:74:49:22:10:
+                    f4:f3:46:b2:03:ba:82:b3:02:cf:a7:e2:88:43:a5:
+                    a6:0b:1a:6e:b0:04:1f:29:63:e7:9a:5c:3d:78:d0:
+                    87:f7
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Authority Key Identifier: 
+                keyid:58:91:71:68:62:73:9E:08:DF:5A:06:D2:AE:4F:BD:91:52:68:58:F3
+
+            X509v3 Subject Key Identifier: 
+                9A:A4:43:3E:1B:5A:AA:C3:36:13:2E:05:F9:09:C8:C7:27:48:3B:97
+            X509v3 Basic Constraints: critical
+                CA:TRUE
+            X509v3 Key Usage: critical
+                Certificate Sign, CRL Sign
+            sbgp-ipAddrBlock: critical
+                IPv4:
+                  87.77.0.0/16
+                  141.23.0.0/16
+                  141.89.0.0/16
+                IPv6:
+                  2001:638::/32
+
+            Netscape Comment: 
+                This is a fake certificate generated for testing purposes.
+    Signature Algorithm: sha256WithRSAEncryption
+        47:43:7a:e7:73:5e:e9:7a:d6:8a:ec:ec:1a:f3:08:93:9c:5c:
+        ba:b2:0f:34:15:29:07:d2:7d:6f:9b:66:0e:36:9e:1b:67:0a:
+        03:cc:57:97:3a:72:18:c1:d1:3f:94:73:ec:74:4d:bf:f5:9b:
+        95:59:0c:06:42:03:61:a3:1f:9d:5b:0b:ff:df:2f:22:ba:90:
+        dd:05:56:58:26:fb:4e:a6:61:f8:e0:95:50:e2:2f:70:54:ac:
+        3e:ab:a2:4e:b3:4b:b1:67:a9:d3:f2:eb:5d:00:4f:6d:48:62:
+        88:da:c2:71:7e:33:67:4e:12:1d:b4:01:4a:23:c0:af:b8:00:
+        cb:86:4e:0a:dc:ec:22:89:35:57:ee:9e:89:ea:80:8c:33:91:
+        a8:ba:c7:bb:06:4e:18:b7:7c:07:b8:f4:bc:25:bf:ab:32:cf:
+        69:98:7c:d1:85:a9:da:16:c1:e1:f1:c4:0f:31:63:55:5b:b4:
+        26:71:a2:db:e5:2a:6c:c2:75:01:8f:4a:c7:ee:b8:cc:ee:92:
+        ef:ff:b9:81:00:23:d4:9a:6e:33:04:9f:e8:62:1e:a8:9d:d4:
+        4d:0d:5b:0f:b0:ee:e0:4a:8b:11:85:c5:22:72:07:98:2c:48:
+        e6:51:86:b2:f9:dc:24:8a:df:41:aa:3f:06:1e:fc:66:95:ab:
+        02:24:a1:30
+-----BEGIN CERTIFICATE-----
+MIIDiDCCAnCgAwIBAgIBATANBgkqhkiG9w0BAQsFADAWMRQwEgYDVQQDEwtyaXBl
+LW5jYy10YTAeFw0xMjAyMjMxNTQyMDZaFw0yMjAxMDExNTQyMDZaMA4xDDAKBgNV
+BAMMA0RGTjCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJ81f7rMuABX
+2y0AABy2dBDRp+18nv8/J+2nD8rQcYCiV3AEFOLPAALUBDq93Oh7Jey5c08OxrwZ
+svB487y23h7wWkl7fBWNxnLaFaukS6QDz5Tv4+CQN8Z9mbcEiyr52g1C895IhRU6
+oET2kmAno/RpBygl6n9NmAPg1DV+VtEZ6R3BI7eVYgE4AkoHYUzUk/M637Fo4veu
+SuTDr/Vhnwv4BILdvX9pS/h/CVMw9AWRji49PZ0bW6Y+7Rrn/ASi6fTPa95kD2JC
+bqaghWMqbTC9QHmckP2DHFLETdt0SSIQ9PNGsgO6grMCz6fiiEOlpgsabrAEHylj
+55pcPXjQh/cCAwEAAaOB6DCB5TAfBgNVHSMEGDAWgBRYkXFoYnOeCN9aBtKuT72R
+UmhY8zAdBgNVHQ4EFgQUmqRDPhtaqsM2Ey4F+QnIxydIO5cwDwYDVR0TAQH/BAUw
+AwEB/zAOBgNVHQ8BAf8EBAMCAQYwNwYIKwYBBQUHAQcBAf8EKDAmMBUEAgABMA8D
+AwBXTQMDAI0XAwMAjVkwDQQCAAIwBwMFACABBjgwSQYJYIZIAYb4QgENBDwWOlRo
+aXMgaXMgYSBmYWtlIGNlcnRpZmljYXRlIGdlbmVyYXRlZCBmb3IgdGVzdGluZyBw
+dXJwb3Nlcy4wDQYJKoZIhvcNAQELBQADggEBAEdDeudzXul61ors7BrzCJOcXLqy
+DzQVKQfSfW+bZg42nhtnCgPMV5c6chjB0T+Uc+x0Tb/1m5VZDAZCA2GjH51bC//f
+LyK6kN0FVlgm+06mYfjglVDiL3BUrD6rok6zS7FnqdPy610AT21IYojawnF+M2dO
+Eh20AUojwK+4AMuGTgrc7CKJNVfunonqgIwzkai6x7sGThi3fAe49Lwlv6syz2mY
+fNGFqdoWweHxxA8xY1VbtCZxotvlKmzCdQGPSsfuuMzuku//uYEAI9SabjMEn+hi
+Hqid1E0NWw+w7uBKixGFxSJyB5gsSOZRhrL53CSK30GqPwYe/GaVqwIkoTA=
+-----END CERTIFICATE-----

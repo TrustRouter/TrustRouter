@@ -1,0 +1,75 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 1 (0x1)
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: CN=HASSO-PLATTNER-INSTITUTE
+        Validity
+            Not Before: Feb 23 15:43:00 2012 GMT
+            Not After : Jan  1 15:43:00 2022 GMT
+        Subject: CN=ROUTER0
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (1024 bit)
+                Modulus:
+                    00:af:96:81:88:e2:fb:44:20:3d:a9:c9:1b:07:de:
+                    9d:55:27:9e:f7:dc:e6:e2:d2:9b:5c:9a:46:72:2b:
+                    02:10:ce:4d:c2:87:b7:74:03:91:ac:cd:c5:87:5e:
+                    06:af:c8:9a:da:29:f9:e9:16:8a:c6:97:62:76:bb:
+                    14:b0:ab:b7:fe:03:34:12:98:4b:8e:77:ba:2b:1b:
+                    09:8f:6e:d9:b3:59:68:b5:35:a8:68:08:21:70:7f:
+                    65:6d:ca:d1:75:dd:c1:bc:1c:c6:ee:8b:8c:74:3f:
+                    bd:8b:8f:de:26:a1:99:3b:b2:3c:b6:6b:fc:c5:a1:
+                    76:af:d5:07:02:62:71:6c:09
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+            X509v3 Authority Key Identifier: 
+                keyid:D1:4A:F1:07:92:83:4C:2A:EF:01:B0:FD:FF:DD:8D:1A:D6:65:CA:1B
+
+            X509v3 Subject Key Identifier: 
+                36:94:27:CB:87:45:60:EE:FF:EA:3B:25:9A:CE:6F:F6:62:07:67:4B
+            X509v3 Basic Constraints: critical
+                CA:FALSE
+            X509v3 Key Usage: critical
+                Digital Signature
+            sbgp-ipAddrBlock: critical
+                IPv6:
+                  2001:638:807:21d::/64
+
+            Netscape Comment: 
+                This is a fake certificate generated for testing purposes.
+    Signature Algorithm: sha256WithRSAEncryption
+        04:c0:5d:d5:1b:81:40:be:bc:9f:cb:f0:e6:0d:ef:0e:c2:07:
+        7c:a4:49:79:e9:9e:8a:3f:cf:d1:ed:cb:74:3d:91:f4:b0:ec:
+        2b:1e:86:94:d7:69:26:2a:e5:15:94:91:1b:f4:f2:46:47:d2:
+        cb:4d:66:25:8b:33:14:62:9a:1a:fd:32:ee:41:b7:a9:86:a9:
+        7b:d7:36:cf:41:d0:48:89:56:e9:0a:33:b4:44:7c:af:87:ac:
+        d7:6a:55:e6:eb:16:1e:45:16:fa:d3:eb:ba:40:d8:f0:e2:95:
+        94:f8:d6:72:73:59:0e:49:f4:25:6d:fa:52:9c:63:f8:8a:42:
+        ee:33:62:1e:90:34:ea:3f:0e:a5:10:8f:26:56:94:ed:e9:dd:
+        48:cb:ab:e3:a0:d8:89:c9:4d:56:93:ac:39:71:83:0d:20:03:
+        15:86:1f:da:02:3e:82:cf:5e:3c:1e:3e:96:1f:ff:51:52:5b:
+        90:b8:42:eb:17:05:23:c6:f0:1a:fb:4c:2d:05:21:72:18:d7:
+        f3:0e:10:48:77:d3:74:76:4a:5b:1d:69:5d:03:a9:98:72:66:
+        55:7c:7d:b6:ad:05:16:3f:1e:0e:e8:41:d5:1f:54:c3:c0:a6:
+        5a:7f:6d:45:a0:dc:fd:03:69:72:e6:42:58:87:79:75:a6:61:
+        ee:8b:74:f6
+-----BEGIN CERTIFICATE-----
+MIIC/zCCAeegAwIBAgIBATANBgkqhkiG9w0BAQsFADAjMSEwHwYDVQQDDBhIQVNT
+Ty1QTEFUVE5FUi1JTlNUSVRVVEUwHhcNMTIwMjIzMTU0MzAwWhcNMjIwMTAxMTU0
+MzAwWjASMRAwDgYDVQQDDAdST1VURVIwMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCB
+iQKBgQCvloGI4vtEID2pyRsH3p1VJ5733Obi0ptcmkZyKwIQzk3Ch7d0A5GszcWH
+XgavyJraKfnpForGl2J2uxSwq7f+AzQSmEuOd7orGwmPbtmzWWi1NahoCCFwf2Vt
+ytF13cG8HMbui4x0P72Lj94moZk7sjy2a/zFoXav1QcCYnFsCQIDAQABo4HSMIHP
+MB8GA1UdIwQYMBaAFNFK8QeSg0wq7wGw/f/djRrWZcobMB0GA1UdDgQWBBQ2lCfL
+h0Vg7v/qOyWazm/2YgdnSzAMBgNVHRMBAf8EAjAAMA4GA1UdDwEB/wQEAwIHgDAk
+BggrBgEFBQcBBwEB/wQVMBMwEQQCAAIwCwMJACABBjgIBwIdMEkGCWCGSAGG+EIB
+DQQ8FjpUaGlzIGlzIGEgZmFrZSBjZXJ0aWZpY2F0ZSBnZW5lcmF0ZWQgZm9yIHRl
+c3RpbmcgcHVycG9zZXMuMA0GCSqGSIb3DQEBCwUAA4IBAQAEwF3VG4FAvryfy/Dm
+De8Owgd8pEl56Z6KP8/R7ct0PZH0sOwrHoaU12kmKuUVlJEb9PJGR9LLTWYlizMU
+Ypoa/TLuQbephql71zbPQdBIiVbpCjO0RHyvh6zXalXm6xYeRRb60+u6QNjw4pWU
++NZyc1kOSfQlbfpSnGP4ikLuM2IekDTqPw6lEI8mVpTt6d1Iy6vjoNiJyU1Wk6w5
+cYMNIAMVhh/aAj6Cz148Hj6WH/9RUluQuELrFwUjxvAa+0wtBSFyGNfzDhBId9N0
+dkpbHWldA6mYcmZVfH22rQUWPx4O6EHVH1TDwKZaf21FoNz9A2ly5kJYh3l1pmHu
+i3T2
+-----END CERTIFICATE-----
