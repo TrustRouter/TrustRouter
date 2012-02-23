@@ -6,3 +6,4 @@ subjectKeyIdentifier    = hash
 basicConstraints	= critical, CA:true
 keyUsage         	= critical, keyCertSign,cRLSign
 sbgp-ipAddrBlock	= critical, IPv6:2001:638:807:21d::/59
+nsComment		= "This is a fake certificate generated for testing purposes."
