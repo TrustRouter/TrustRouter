@@ -101,6 +101,7 @@ NTSTATUS SendCalloutRead(PDEVICE_OBJECT pDeviceObject, PIRP Irp) {
 	PCHAR pReturnData;
     UINT packetByteCount, returnDataCount;
 	UINT dwDataRead = 0;
+	UINT totalReadBytes, interfaceId = 0;
 	
 	//if(pReturnData != NULL) {
 	if (!IsListEmpty(&gReinjectListHead)) {
@@ -124,6 +125,7 @@ NTSTATUS SendCalloutRead(PDEVICE_OBJECT pDeviceObject, PIRP Irp) {
 		
 		if (pReinjectInfoToRead != NULL) {			
 			
+			interfaceId = pReinjectInfoToRead->interfaceIndex;
 			// Get the packet data from the Net Buffer.
 			pNetBuffer = NET_BUFFER_LIST_FIRST_NB(pReinjectInfoToRead->netBufferList);
 
@@ -147,15 +149,26 @@ NTSTATUS SendCalloutRead(PDEVICE_OBJECT pDeviceObject, PIRP Irp) {
 			if(pIoStackIrp)
 			{
 				pReadDataBuffer = (PCHAR)Irp->AssociatedIrp.SystemBuffer;
-				if(pReadDataBuffer && pIoStackIrp->Parameters.Read.Length >= packetByteCount)
+				totalReadBytes = packetByteCount + sizeof(&interfaceId) + sizeof(pReinjectInfoToRead);
+				
+				if(pReadDataBuffer && pIoStackIrp->Parameters.Read.Length >= totalReadBytes)
 				{
-					RtlCopyMemory(pReadDataBuffer, &pReinjectInfoToRead, sizeof(pReinjectInfoToRead));
-					DbgPrint("READ: Copied %p to buffer.\n", pReinjectInfoToRead);
-					RtlCopyMemory(pReadDataBuffer + sizeof(ICMP_V6_REINJECT_INFO *), pReturnData, packetByteCount);
+					// First, write the address of the reinject structure into the buffer.
+					// It is used to identify the packet when writing back to this driver.
+					RtlCopyMemory(pReadDataBuffer, &pReinjectInfoToRead, sizeof(&pReinjectInfoToRead));
+					DbgPrint("READ: Copied Address %p to buffer.\n", pReinjectInfoToRead);
+					// Now write the interface identifiert, a 32-bit unsigned integer, to the buffer.
+					// It is needed as the scope id in userland.
+					RtlCopyMemory(pReadDataBuffer + sizeof(&pReinjectInfoToRead), &interfaceId, sizeof(&interfaceId));
+					DbgPrint("READ: Copied Interface Identifier %d to buffer.\n", interfaceId);
+					// Now, write the byte content of the packet into the buffer.
+					RtlCopyMemory(pReadDataBuffer + sizeof(&pReinjectInfoToRead) + sizeof(&interfaceId), pReturnData, packetByteCount);
+					DbgPrint("READ: Copied Packet Data to buffer.\n");
 					dwDataRead = packetByteCount + sizeof(ICMP_V6_REINJECT_INFO *);
-					status = STATUS_SUCCESS;
 					
 					pReinjectInfoToRead->hasBeenRead = TRUE;
+					
+					status = STATUS_SUCCESS;
 				}
 			}
 		}		
@@ -305,7 +318,7 @@ VOID NTAPI ClassifyFn1(
 								  NULL);
 	
 	DbgPrint("Original Net Buffer List:\n");
-	printDataFromNetBufferList(netBufferList);
+	//printDataFromNetBufferList(netBufferList);
 	
 	// Make a shallow copy of the net buffer list.
 	FwpsAllocateCloneNetBufferList0(
@@ -320,7 +333,7 @@ VOID NTAPI ClassifyFn1(
 		// FALSE);
 		
 	DbgPrint("AAAAAAAA Cloned Net Buffer List:\n");
-	printDataFromNetBufferList(clonedNetBufferList);
+	//printDataFromNetBufferList(clonedNetBufferList);
 	
 	// if (packetByteCount >= 97) {
 		// DbgPrint("Packet Data from Net Buffer (Prefix):");	
@@ -350,6 +363,7 @@ VOID NTAPI ClassifyFn1(
 	reinjectInfo->injectionHandle = injectionHandle;
 	reinjectInfo->af = AF_INET6;
 	reinjectInfo->interfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_INTERFACE_INDEX].value.uint32;
+	DbgPrint("InterfaceIndex is %d\n", reinjectInfo->interfaceIndex);
 	reinjectInfo->subInterfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_SUB_INTERFACE_INDEX].value.uint32;
 	reinjectInfo->hasBeenRead = FALSE;
 	
