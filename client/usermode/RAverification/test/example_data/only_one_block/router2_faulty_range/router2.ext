@@ -6,3 +6,4 @@ authorityKeyIdentifier	= keyid
 basicConstraints	= critical, CA:false
 keyUsage         	= critical, digitalSignature
 sbgp-ipAddrBlock	= critical, IPv6:2001:630::/28
+nsComment		= "This is a fake certificate generated for testing purposes."
