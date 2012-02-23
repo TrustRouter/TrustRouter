@@ -102,4 +102,7 @@
 # include <ifaddrs.h>
 #endif
 
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+
 #endif /* INCLUDES_H */

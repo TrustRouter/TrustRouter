@@ -30,6 +30,7 @@
 
 /* For each multicast interface: */
 
+#define DFLT_PathToPrivateKey		""
 #define DFLT_IgnoreIfMissing		1
 #define DFLT_AdvSendAdv			0
 #define DFLT_MaxRtrAdvInterval		600
@@ -55,7 +56,6 @@
 #define DFLT_IsPathToFileFlag		0
 #define DFLT_PathToCertificates		"" /* empty path to certificates means no signed RAs */
 #define DFLT_AdvOnLinkFlag			1
-#define DFLT_PathToPrivateKey		""
 #define DFLT_AdvPreferredLifetime	14400 /* seconds */
 #define DFLT_AdvAutonomousFlag		1
 #define DFLT_DeprecatePrefixFlag	0

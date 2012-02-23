@@ -60,6 +60,7 @@ EXTRA_radvd_SOURCES = \
 	privsep-linux.c
 
 radvd_LDADD = \
+	$(OPENSSL_LIBS) \
 	@CONDITIONAL_SOURCES@
 
 radvd_DEPENDENCIES = \
@@ -75,7 +76,11 @@ AM_CFLAGS = \
 	-Wmissing-declarations \
 	-Wmissing-prototypes \
 	-Wno-strict-aliasing \
-	-Wstrict-prototypes
+	-Wstrict-prototypes \
+	$(OPENSSL_INCLUDES)
+
+AM_LDFLAGS = \
+	$(OPENSSL_LDFLAGS)
 
 radvdump_SOURCES = \
 	$(COMMON_SRC) \

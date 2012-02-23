@@ -66,6 +66,11 @@ struct Interface {
 	int			AdvSourceLLAddress;
 	int			UnicastOnly;
 
+	/* key that is used to sign messages with SEND */
+	/* Refer to the addition of the signature option in send_ra(...) in send.c for further details */
+	char		PathToPrivateKey[PATH_MAX];
+	RSA			*PrivateKey;
+
 	/* Mobile IPv6 extensions */
 	int			AdvIntervalOpt;
 	int			AdvHomeAgentInfo;
@@ -99,12 +104,10 @@ struct AdvPrefix {
 	struct in6_addr		Prefix;
 	uint8_t			PrefixLen;
 
-	//path to certificate chain for SEND
+	/* path to certificate chain for SEND */
 	int			IsPathToFileFlag;
 	char		PathToCertificates[PATH_MAX];
-
-	//path to the key file that is used to sign messages
-	char		PathToPrivateKey[PATH_MAX];
+	STACK_OF(X509) *certificateChain;
 
 	int			AdvOnLinkFlag;
 	int			AdvAutonomousFlag;
@@ -189,7 +192,7 @@ struct SignatureOpt {
 	uint8_t			type;			// 1 byte type
 	uint8_t			length;			// 1 byte length
 	uint16_t		reserved;		// 2 byte reserved
-	char			key_hash[16];	// 16 byte key-hash (128 most significant bits of SHA-1 hash of the key)
+	char			key_hash[16];	// 16 byte key-hash (128 most significant bits of SHA-1 hash of the senders public key)
 	char			**signature;	// variable length PKCS#1 v1.5 signature
 };
 

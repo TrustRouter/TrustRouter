@@ -44,6 +44,8 @@ iface_init_defaults(struct Interface *iface)
 	iface->AdvDefaultLifetime = -1;
 	iface->AdvDefaultPreference = DFLT_AdvDefaultPreference;
 	iface->HomeAgentLifetime = -1;
+	strncpy(iface->PathToPrivateKey, DFLT_PathToPrivateKey, PATH_MAX-1);
+	iface->PathToPrivateKey[PATH_MAX-1] = '\0';
 }
 
 void
@@ -54,8 +56,6 @@ prefix_init_defaults(struct AdvPrefix *prefix)
 	prefix->IsPathToFileFlag = DFLT_IsPathToFileFlag;
 	strncpy(prefix->PathToCertificates, DFLT_PathToCertificates, PATH_MAX-1);
 	prefix->PathToCertificates[PATH_MAX-1] = '\0';
-	strncpy(prefix->PathToPrivateKey, DFLT_PathToPrivateKey, PATH_MAX-1);
-	prefix->PathToPrivateKey[PATH_MAX-1] = '\0';
 	prefix->AdvOnLinkFlag = DFLT_AdvOnLinkFlag;
 	prefix->AdvAutonomousFlag = DFLT_AdvAutonomousFlag;
 	prefix->AdvRouterAddr = DFLT_AdvRouterAddr;

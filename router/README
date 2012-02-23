@@ -6,7 +6,7 @@ After that, use automake to generate required files:
 1. > aclocal
 2. > autoheader
 3. > automake --add-missing
-4. > autoreconf
+4. > autoreconf -I m4
 5. proceed with installation steps...
 
 In order to use the C-Developer Tools of Eclipse, the linuxtools plugin is required to handle the automake process.

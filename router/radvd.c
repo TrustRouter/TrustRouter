@@ -86,6 +86,7 @@ void sigint_handler(int sig);
 void sigusr1_handler(int sig);
 void timer_handler(void *data);
 void config_interface(void);
+void config_certificates(struct Interface *iface);
 void kickoff_adverts(void);
 void stop_adverts(void);
 void version(void);
@@ -263,6 +264,8 @@ main(int argc, char *argv[])
 		flog(LOG_ERR, "Exiting, failed to read config file.\n");
 		exit(1);
 	}
+
+	/* TODO: check completeness of configuration */
 
 	if (configtest) {
 		fprintf(stderr, "Syntax OK\n");
@@ -499,6 +502,18 @@ config_interface(void)
 	struct Interface *iface;
 	for(iface=IfaceList; iface; iface=iface->next)
 	{
+		FILE *fp = fopen(iface->PathToPrivateKey, "r");
+		if(fp == NULL) {
+			flog(LOG_ERR, "Error opening private key file at path %s, error is '%s'", iface->PathToPrivateKey, strerror(errno));
+			exit(1);
+		}
+		iface->PrivateKey = (RSA*)PEM_read_RSAPrivateKey(fp, NULL, NULL, NULL);
+		if(iface->PrivateKey == NULL) {
+			flog(LOG_ERR, "Error reading the private key file");
+			exit(1);
+		}
+		config_certificates(iface);
+
 		if (iface->AdvLinkMTU)
 			set_interface_linkmtu(iface->Name, iface->AdvLinkMTU);
 		if (iface->AdvCurHopLimit)
@@ -507,6 +522,55 @@ config_interface(void)
 			set_interface_reachtime(iface->Name, iface->AdvReachableTime);
 		if (iface->AdvRetransTimer)
 			set_interface_retranstimer(iface->Name, iface->AdvRetransTimer);
+
+	}
+}
+
+/*
+ * Reads in the certificates for each prefix that are given as paths
+ * to either a folder or a file containing a certificate chain.
+ */
+void
+config_certificates(struct Interface *iface)
+{
+	struct AdvPrefix *prefix;
+	for(prefix = iface->AdvPrefixList; prefix; prefix = prefix->next) {
+		STACK_OF(X509_INFO) *infoStack = NULL;
+		STACK_OF(X509) *certificateStack = NULL;
+		BIO *bio = NULL;
+		if (prefix->IsPathToFileFlag) {
+			/*
+			 * Read a certificate chain from a single file
+			 * We assume the certificates in the file are ordered according to the certificate chain,
+			 * beginning with the trust anchor and ending with the router certificate.
+			 */
+			if(!(certificateStack = sk_X509_new_null())) {
+				flog(LOG_ERR, "Error creating new certificate stack");
+				exit(1);
+			}
+			if(!(bio = BIO_new_file(prefix->PathToCertificates, "r"))) {
+				flog(LOG_ERR, "Error creating new BIO file from PathToCertificates");
+				exit(1);
+			}
+			if(!(infoStack = PEM_X509_INFO_read_bio(bio, NULL, NULL, NULL))) {
+				flog(LOG_ERR, "Error reading BIO file");
+				exit(1);
+			}
+			while(sk_X509_INFO_num(infoStack)) {
+				X509_INFO *certificateInfo = sk_X509_INFO_shift(infoStack);
+				if(certificateInfo->x509 != NULL){
+					sk_X509_push(certificateStack, certificateInfo->x509);
+					certificateInfo->x509 = NULL;
+				}
+				X509_INFO_free(certificateInfo);
+			}
+			prefix->certificateChain = certificateStack;
+		} else {
+			/* read a certificate chain from a folder with files for each certificate */
+			// TODO implement this
+		}
+		BIO_free(bio);
+		sk_X509_INFO_free(infoStack);
 	}
 }
 

@@ -237,7 +237,15 @@ ifaceparam 	: ifaceval
 		| dnssldef 	{ ADD_TO_LL(struct AdvDNSSL, AdvDNSSLList, $1); }
 		;
 
-ifaceval	: T_MinRtrAdvInterval NUMBER ';'
+ifaceval	: T_PathToPrivateKey absolutepath ';'
+		{
+			// path to the private key that is used to sign messages
+			if (iface) {
+				strncpy(iface->PathToPrivateKey, $2, PATH_MAX-1);
+				dlog(LOG_DEBUG, 3, "Path to Private Key for %s is: %s", iface->Name, iface->PathToPrivateKey);
+			}
+		}
+		| T_MinRtrAdvInterval NUMBER ';'
 		{
 			iface->MinRtrAdvInterval = $2;
 		}
@@ -571,27 +579,7 @@ prefixplist	: prefixplist prefixparms
 		| prefixparms
 		;
 
-prefixparms	: T_PathToPrivateKey absolutepath ';'
-		{
-			// path to the private key that is used to sign messages
-			if (prefix) {
-				if (prefix->AutoSelected) {
-					struct AdvPrefix *p = prefix;
-					do {
-						strncpy(p->PathToPrivateKey, $2, PATH_MAX-1);
-						p->PathToPrivateKey[PATH_MAX-1] = '\0';
-						dlog(LOG_DEBUG, 3, "Path to Private Key is: %s", p->PathToPrivateKey);
-						p = p->next;
-					} while (p && p->AutoSelected);
-				}
-				else {
-					strncpy(prefix->PathToPrivateKey, $2, PATH_MAX-1);
-					prefix->PathToPrivateKey[PATH_MAX-1] = '\0';
-					dlog(LOG_DEBUG, 3, "Path to Private Key is: %s", prefix->PathToPrivateKey);
-				}
-			}
-		} 
-		| T_CertPathFile absolutepath ';'
+prefixparms	: T_CertPathFile absolutepath ';'
 		{
 			// the complete certificate path in one file and correctly ordered
 			if (prefix) {
@@ -600,7 +588,6 @@ prefixparms	: T_PathToPrivateKey absolutepath ';'
 					do {
 						p->IsPathToFileFlag = 1;
 						strncpy(p->PathToCertificates, $2, PATH_MAX-1);
-						p->PathToCertificates[PATH_MAX-1] = '\0';
 						dlog(LOG_DEBUG, 3, "Path to Certificate is: %s", p->PathToCertificates);
 						p = p->next;
 					} while (p && p->AutoSelected);
@@ -608,7 +595,6 @@ prefixparms	: T_PathToPrivateKey absolutepath ';'
 				else {
 					prefix->IsPathToFileFlag = 1;
 					strncpy(prefix->PathToCertificates, $2, PATH_MAX-1);
-					prefix->PathToCertificates[PATH_MAX-1] = '\0';
 					dlog(LOG_DEBUG, 3, "Path to Certificate is: %s", prefix->PathToCertificates);
 				}
 			}
@@ -622,7 +608,6 @@ prefixparms	: T_PathToPrivateKey absolutepath ';'
 					do {
 						p->IsPathToFileFlag = 0;
 						strncpy(p->PathToCertificates, $2, PATH_MAX-1);
-						p->PathToCertificates[PATH_MAX-1] = '\0';
 						dlog(LOG_DEBUG, 3, "Path to Certificate is: %s", p->PathToCertificates);
 						p = p->next;
 					} while (p && p->AutoSelected);
@@ -630,7 +615,6 @@ prefixparms	: T_PathToPrivateKey absolutepath ';'
 				else {
 					prefix->IsPathToFileFlag = 0;
 					strncpy(prefix->PathToCertificates, $2, PATH_MAX-1);
-					prefix->PathToCertificates[PATH_MAX-1] = '\0';
 					dlog(LOG_DEBUG, 3, "Path to Certificate is: %s", prefix->PathToCertificates);
 				}
 			}
@@ -748,7 +732,8 @@ absolutepath	: absolutepath '/' STRING
 		{
 			char string[PATH_MAX] = "";
 			strcat(string, "/");
-			$$ = strcat(string, $2);
+			strcat(string, $2);
+			$$ = strcat(string, "\0");
 		}
 		;
 

@@ -499,17 +499,36 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		memcpy(buff + buff_dest, &ha_info, sizeof(ha_info));
 	}
 
+	/*
+	 * add Signature Option (RFC 3971)
+	 *
+	 * The RFC does not forbid routers to have multiple certificates.
+	 * This might lead to situations where the RA contains multiple prefix options
+	 * the router is indeed allowed to use, but which are not covered in one certificate.
+	 * Since the signature option needs to choose one key from a certificate,
+	 * some of the prefixes might not be covered by the certificate the key is taken from.
+	 * Therefore the whole RA might get blocked on the client side.
+	 * Having multiple prefixes covered by different certificates and advertising them
+	 * in a single RA is only possible, if all certificates use the same key.
+	 * This enables the client to recognize the key hash occurs in
+	 * multiple certificates each in turn authorizing the usage of a subset of the advertised prefixes.
+	 */
 	// TODO add the signature option here
 
-	prefix = iface->AdvPrefixList;
+	if (iface->PrivateKey != NULL) {
+		struct AdvPrefix *currentPrefix = iface->AdvPrefixList;
 
-	//signature->type = SEND_OPT_SIGNATURE;
-	//signature->reserved = 0;
-	while(prefix){
-		flog(LOG_WARNING, "Debugprint: %s", prefix->PathToCertificates);
-		prefix = prefix->next;
+		// FIXME check the other prefixes for a certificate path
+		// At the moment we assume that either all prefixes have a path to certificates set, or none has.
+		// We might introduce some kind of mixed mode later on that sends separate RAs for the prefixes
+		// with certificate paths set and for those without.
+		if (strcmp(currentPrefix->PathToCertificates, "") == 0) {
+			flog(LOG_ERR, "No Path to Certificates set.");
+		}
+		signature->type = SEND_OPT_SIGNATURE;
+		signature->reserved = 0;
+		// signature->key_hash =
 	}
-
 
 	iov.iov_len  = len;
 	iov.iov_base = (caddr_t) buff;
