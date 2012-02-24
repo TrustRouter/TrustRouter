@@ -564,7 +564,7 @@ config_certificates(struct Interface *iface)
 				}
 				X509_INFO_free(certificateInfo);
 			}
-			prefix->certificateChain = certificateStack;
+			prefix->CertificateChain = certificateStack;
 		} else {
 			/* read a certificate chain from a folder with files for each certificate */
 			// TODO implement this

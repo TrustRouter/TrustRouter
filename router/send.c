@@ -125,7 +125,6 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 	struct AdvRoute *route;
 	struct AdvRDNSS *rdnss;
 	struct AdvDNSSL *dnssl;
-	struct SignatureOpt *signature;
 	struct timeval time_now;
 	time_t secs_since_last_ra;
 
@@ -513,21 +512,81 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 	 * This enables the client to recognize the key hash occurs in
 	 * multiple certificates each in turn authorizing the usage of a subset of the advertised prefixes.
 	 */
-	// TODO add the signature option here
 
 	if (iface->PrivateKey != NULL) {
-		struct AdvPrefix *currentPrefix = iface->AdvPrefixList;
+		/* magic sequence required by RFC 3971 */
+		const char cgaMessageTypeTag[] = {0x08,0x6f,0xca,0x5e,0x10,0xb2,0x00,0xc9,0x9c,0x8c,0xe0,0x01,0x64,0x27,0x7c,0x08};
 
-		// FIXME check the other prefixes for a certificate path
-		// At the moment we assume that either all prefixes have a path to certificates set, or none has.
-		// We might introduce some kind of mixed mode later on that sends separate RAs for the prefixes
-		// with certificate paths set and for those without.
-		if (strcmp(currentPrefix->PathToCertificates, "") == 0) {
-			flog(LOG_ERR, "No Path to Certificates set.");
+		struct SignatureOpt signature;
+		struct AdvPrefix *currentPrefix = iface->AdvPrefixList;
+		X509_PUBKEY *pubKey;
+		EVP_MD_CTX shaContext;
+		unsigned char *asn1;
+		unsigned int asn1Length;
+		unsigned char *messageDigest;
+		unsigned int messageDigestLength;
+		unsigned char *rsaSignature;
+		unsigned int rsaSignatureLength;
+		unsigned int dataLength;
+
+		// FIXME the configuration file processing should enforce that all prefixes have a certification path set
+		if (sk_num(&currentPrefix->CertificateChain->stack) == 0) {
+			flog(LOG_ERR, "No Certificates for the current prefix.");
 		}
-		signature->type = SEND_OPT_SIGNATURE;
-		signature->reserved = 0;
-		// signature->key_hash =
+
+		signature.type = SEND_OPT_SIGNATURE;
+		signature.reserved = 0;
+
+		/* get the most significant 128 bits of the SHA1 hash of the certificates private key structure */
+		pubKey = ((X509*)sk_value(&currentPrefix->CertificateChain->stack, sk_num(&currentPrefix->CertificateChain->stack) - 1))->cert_info->key;
+		asn1 = malloc(ASN1_BUFFER_SIZE);
+		asn1Length = i2d_X509_PUBKEY(pubKey, &asn1);
+		if(asn1Length <= 0) {
+			flog(LOG_ERR, "Error while converting the public key structure to asn1");
+		}
+		// FIXME direct call of SHA1 is deprecated, use EVP_DigestInit instead
+		memcpy(signature.key_hash, SHA1(asn1, asn1Length, NULL), sizeof(signature.key_hash));
+
+		/* compute the signature */
+		EVP_DigestInit(&shaContext, EVP_sha1());
+		EVP_DigestUpdate(&shaContext, cgaMessageTypeTag, sizeof(cgaMessageTypeTag));
+		EVP_DigestUpdate(&shaContext, &iface->if_addr.__in6_u, sizeof(iface->if_addr.__in6_u));
+		EVP_DigestUpdate(&shaContext, &dest->__in6_u, sizeof(dest->__in6_u));
+		/* at this point, the buffer contains the complete ICMP header and all options except the signature */
+		EVP_DigestUpdate(&shaContext, buff, sizeof(len));
+		messageDigest = malloc(EVP_MAX_MD_SIZE);
+		EVP_DigestFinal(&shaContext, messageDigest, &messageDigestLength);
+
+		rsaSignature = malloc(RSA_size(iface->PrivateKey));
+		RSA_sign(NID_sha1, messageDigest, messageDigestLength, rsaSignature, &rsaSignatureLength, iface->PrivateKey);
+
+		signature.signature = rsaSignature;
+		dataLength =	sizeof(signature.type) +
+						sizeof(signature.length) +
+						sizeof(signature.reserved) +
+						strlen((char*)signature.key_hash) +
+						strlen((char*)rsaSignature);
+		if (dataLength + (dataLength % 8) == 0) {
+			signature.length = dataLength;
+		} else {
+			signature.length = dataLength + (8 - (dataLength % 8));
+		}
+
+		buff_dest = len;
+		send_ra_inc_len(&len, sizeof(signature));
+		memcpy(buff + buff_dest, &signature, sizeof(signature));
+
+		/* add the padding */
+
+		buff_dest = len;
+		send_ra_inc_len(&len, signature.length - dataLength);
+		memset(buff + buff_dest, 0, signature.length - dataLength);
+
+		/* free the allocated memory */
+		free(messageDigest);
+		free(rsaSignature);
+		//free(asn1);
+		flog(LOG_INFO, "Signature appended");
 	}
 
 	iov.iov_len  = len;

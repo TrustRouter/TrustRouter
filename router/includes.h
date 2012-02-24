@@ -104,5 +104,6 @@
 
 #include <openssl/rsa.h>
 #include <openssl/pem.h>
+#include <openssl/safestack.h>
 
 #endif /* INCLUDES_H */
