@@ -9,13 +9,14 @@ RA_TYPE = "134"
 
 def cb(payload):
     print("python callback called!")
-    data = payload.get_data()
-
-    accept_callback = _get_callback(payload, nfqueue.NF_ACCEPT)
-    reject_callback = _get_callback(payload, nfqueue.NF_DROP)
 
     common_part = shared.Shared()
-    common_part.new_packet(data, accept_callback, reject_callback)
+    if common_part.verify_router_advertisment(
+            payload.get_data(),
+            payload.get_indev()):
+        payload.set_verdict(nfqueue.NF_ACCEPT)
+    else:
+        payload.set_verdict(nfqueue.NF_DROP)
 
     sys.stdout.flush()
     return 1
@@ -46,11 +47,6 @@ def main():
 
     print("close")
     q.close()
-
-def _get_callback(payload, action):
-    def callback():
-        payload.set_verdict(action)
-    return callback
 
 def _cleanup():
     print("cleanup called")
