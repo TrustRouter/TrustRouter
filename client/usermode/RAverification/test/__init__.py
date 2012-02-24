@@ -20,7 +20,6 @@ class TestRAverification(TestCase):
     dfn_o_pem_path = o_data_directory + "dfn/dfn.cer"
     uni_o_pem_path = o_data_directory + "uni_potsdam/uni_potsdam.cer"
     hpi_o_pem_path = o_data_directory + "hpi/hpi.cer"
-    dfn_uni_hpi_o_path = o_data_directory + "dfn+uni_potsdam+hpi.cer"
     router0_o_pem_path = o_data_directory + "router0/router0.cer"
     router1_o_pem_path = o_data_directory + "router1_correct/router1.cer"
     router2_o_pem_path = o_data_directory + "router2_faulty_range/router2.cer"
@@ -39,7 +38,6 @@ class TestRAverification(TestCase):
     dfn_m_pem_path = m_data_directory + "dfn/dfn.cer"
     uni_m_pem_path = m_data_directory + "uni_potsdam/uni_potsdam.cer"
     hpi_m_pem_path = m_data_directory + "hpi/hpi.cer"
-    dfn_uni_hpi_m_path = m_data_directory + "dfn+uni_potsdam+hpi.cer"
     router0_m_pem_path = m_data_directory + "router0/router0.cer"
 
     ripe_m_der_path = m_data_directory + "ripe/ripe.der"

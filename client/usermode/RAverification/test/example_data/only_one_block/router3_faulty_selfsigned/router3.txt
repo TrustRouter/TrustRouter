@@ -1,13 +1,12 @@
 Certificate:
     Data:
         Version: 3 (0x2)
-        Serial Number:
-            e8:59:60:b9:d0:ea:b0:04
+        Serial Number: 1 (0x1)
         Signature Algorithm: sha256WithRSAEncryption
         Issuer: CN=ROUTER3
         Validity
-            Not Before: Dec 14 13:55:07 2011 GMT
-            Not After : Jul  1 13:55:07 2012 GMT
+            Not Before: Feb 23 15:40:17 2012 GMT
+            Not After : Jan  1 15:40:17 2022 GMT
         Subject: CN=ROUTER3
         Subject Public Key Info:
             Public Key Algorithm: rsaEncryption
@@ -33,19 +32,23 @@ Certificate:
                 IPv6:
                   2001:638:807:21d::/64
 
+            Netscape Comment: 
+                This is a fake certificate generated for testing purposes.
     Signature Algorithm: sha256WithRSAEncryption
-        7f:42:e5:a8:53:aa:09:9d:42:46:be:c0:ad:06:b3:4e:d6:85:
-        7e:e9:b6:72:db:63:c2:fd:c0:be:b6:fd:f3:09:f3:bc:2f:64:
-        8c:54:07:b4:ed:05:86:84:f6:b6:03:81:81:62:a2:51:3e:14:
-        06:c2:52:b8:fd:12:5f:65:38:7f
+        82:38:d1:d7:d2:ed:78:70:96:f3:f0:07:9e:94:4f:58:60:0d:
+        7b:04:fb:15:09:b3:04:2d:69:c3:61:81:56:d1:16:51:79:78:
+        22:85:c8:0a:71:32:ec:98:a8:3c:65:7a:52:a5:ae:a3:1e:d0:
+        86:29:e4:c9:c5:c6:ce:6f:9a:5a
 -----BEGIN CERTIFICATE-----
-MIIBqDCCAVKgAwIBAgIJAOhZYLnQ6rAEMA0GCSqGSIb3DQEBCwUAMBIxEDAOBgNV
-BAMMB1JPVVRFUjMwHhcNMTExMjE0MTM1NTA3WhcNMTIwNzAxMTM1NTA3WjASMRAw
-DgYDVQQDDAdST1VURVIzMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAJW4leDfogiF
-b2ouBejUuGwIngiM8m5Z/EMzHpG4kbogWv7+EPweO9PNpTYzvSz0KBBpSr8TLb/x
-ukC75ELHwY8CAwEAAaOBijCBhzAdBgNVHQ4EFgQUtO14rQliCOQ0xVi6gHcqrSiu
-XG4wHwYDVR0jBBgwFoAUtO14rQliCOQ0xVi6gHcqrSiuXG4wDwYDVR0TAQH/BAUw
-AwEB/zAOBgNVHQ8BAf8EBAMCAYYwJAYIKwYBBQUHAQcBAf8EFTATMBEEAgACMAsD
-CQAgAQY4CAcCHTANBgkqhkiG9w0BAQsFAANBAH9C5ahTqgmdQka+wK0Gs07WhX7p
-tnLbY8L9wL62/fMJ87wvZIxUB7TtBYaE9rYDgYFiolE+FAbCUrj9El9lOH8=
+MIIB6zCCAZWgAwIBAgIBATANBgkqhkiG9w0BAQsFADASMRAwDgYDVQQDDAdST1VU
+RVIzMB4XDTEyMDIyMzE1NDAxN1oXDTIyMDEwMTE1NDAxN1owEjEQMA4GA1UEAwwH
+Uk9VVEVSMzBcMA0GCSqGSIb3DQEBAQUAA0sAMEgCQQCVuJXg36IIhW9qLgXo1Lhs
+CJ4IjPJuWfxDMx6RuJG6IFr+/hD8HjvTzaU2M70s9CgQaUq/Ey2/8bpAu+RCx8GP
+AgMBAAGjgdUwgdIwHQYDVR0OBBYEFLTteK0JYgjkNMVYuoB3Kq0orlxuMB8GA1Ud
+IwQYMBaAFLTteK0JYgjkNMVYuoB3Kq0orlxuMA8GA1UdEwEB/wQFMAMBAf8wDgYD
+VR0PAQH/BAQDAgGGMCQGCCsGAQUFBwEHAQH/BBUwEzARBAIAAjALAwkAIAEGOAgH
+Ah0wSQYJYIZIAYb4QgENBDwWOlRoaXMgaXMgYSBmYWtlIGNlcnRpZmljYXRlIGdl
+bmVyYXRlZCBmb3IgdGVzdGluZyBwdXJwb3Nlcy4wDQYJKoZIhvcNAQELBQADQQCC
+ONHX0u14cJbz8AeelE9YYA17BPsVCbMELWnDYYFW0RZReXgihcgKcTLsmKg8ZXpS
+pa6jHtCGKeTJxcbOb5pa
 -----END CERTIFICATE-----

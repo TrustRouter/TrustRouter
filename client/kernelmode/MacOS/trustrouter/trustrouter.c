@@ -34,16 +34,14 @@ static struct packet_queue packet_queue;
 kern_return_t trustrouter_start(kmod_info_t * ki, void *d) {
     printf("[TrustRouter] Kext is loading...\n");
     
-    struct ipf_filter filter;
-    bzero(&filter, sizeof(filter));
-    filter.cookie = (void*)0xdeadbeef;
-    filter.name = "TrustRouter filter";
-    filter.ipf_input = &input_fn;
+    // init packet queue and associated lock
+    TAILQ_INIT(&packet_queue);
+    lck_grp = lck_grp_alloc_init(BUNDLENAME, LCK_GRP_ATTR_NULL);
+    if (lck_grp == NULL) goto error;
+    packet_queue_mtx = lck_mtx_alloc_init(lck_grp, LCK_ATTR_NULL);
+    if (packet_queue_mtx == NULL) goto error;
     
-    if (ipf_addv6(&filter, &installed_filter) != 0) {
-        return KERN_FAILURE;
-    }
-    
+    // init kext control
     struct kern_ctl_reg userctl;
     bzero(&userctl, sizeof(userctl));
     strncpy(userctl.ctl_name, BUNDLENAME, sizeof(userctl.ctl_name));
@@ -51,36 +49,33 @@ kern_return_t trustrouter_start(kmod_info_t * ki, void *d) {
     userctl.ctl_send = &ctl_send_fn;
     userctl.ctl_connect = &ctl_connect_fn;
     userctl.ctl_disconnect = &ctl_disconnect_fn;
+    if (ctl_register(&userctl, &ctlref) != 0) goto error;
     
-    if (ctl_register(&userctl, &ctlref) != 0) {
-        //TODO: Clean-up? (e. g. unregister filter)
-        return KERN_FAILURE;
-    }
-    
-    TAILQ_INIT(&packet_queue);
-    lck_grp = lck_grp_alloc_init(BUNDLENAME, LCK_GRP_ATTR_NULL);
-    if (lck_grp == NULL) {
-        //TODO: Clean-up?
-        return KERN_FAILURE;
-    }
-    packet_queue_mtx = lck_mtx_alloc_init(lck_grp, LCK_ATTR_NULL);
-    if (packet_queue_mtx == NULL) {
-        //TODO: Clean-up?
-        return KERN_FAILURE;
-    }
+    // install filter
+    struct ipf_filter filter;
+    bzero(&filter, sizeof(filter));
+    filter.cookie = (void*)0xdeadbeef;
+    filter.name = "TrustRouter filter";
+    filter.ipf_input = &input_fn;
+    if (ipf_addv6(&filter, &installed_filter) != 0) goto error;
     
     printf("[TrustRouter] Kext is active.\n");
     return KERN_SUCCESS;
+    
+error:
+    if (packet_queue_mtx != NULL) lck_mtx_free(packet_queue_mtx, lck_grp);
+    if (lck_grp != NULL) lck_grp_free(lck_grp);
+    ctl_deregister(ctlref); // ok to call with invalid ctlref
+    
+    printf("[TrustRouter] Loading Kext failed.\n");
+    return KERN_FAILURE;
 }
 
 kern_return_t trustrouter_stop(kmod_info_t *ki, void *d) {
     printf("[TrustRouter] Unloadeding kext...\n");
     
-    //TODO: Check errorcode
-    ipf_remove(installed_filter);
-    
-    //TODO: Check errorcode
-    ctl_deregister(ctlref);
+    if (ctl_deregister(ctlref) == EBUSY) return KERN_FAILURE;
+    if (ipf_remove(installed_filter) != 0) return KERN_FAILURE;
     
     struct pktQueueItem *item;
     struct pktQueueItem *temp_item;
@@ -96,6 +91,7 @@ kern_return_t trustrouter_stop(kmod_info_t *ki, void *d) {
     lck_mtx_free(packet_queue_mtx, lck_grp);
     lck_grp_free(lck_grp);
 
+    printf("[TrustRouter] Kext unloaded.\n");
     return KERN_SUCCESS;
 }
 
@@ -136,7 +132,7 @@ static errno_t input_fn(void *cookie, mbuf_t *data, int offset, u_int8_t protoco
         ctl_enqueuedata(ctlref, ctrl_unit, &packet_id, sizeof(packet_id), 0) != 0 ||
         ctl_enqueuembuf(ctlref, ctrl_unit, usermode_mbuf, 0) != 0) {
         
-        printf("[TrustRouter] Could not send to userspace\n");
+        printf("[TrustRouter] Could not send to userspace.\n");
         
         lck_mtx_lock(packet_queue_mtx);
         TAILQ_REMOVE(&packet_queue, item, entries);
@@ -155,7 +151,7 @@ static errno_t input_fn(void *cookie, mbuf_t *data, int offset, u_int8_t protoco
 static errno_t ctl_connect_fn(kern_ctl_ref kctlref, struct sockaddr_ctl *sac, void **unitinfo) {
     if (ctrl_unit == 0) {
         ctrl_unit = sac->sc_unit;
-        printf("[TrustRouter] Connected\n");
+        printf("[TrustRouter] Connected.\n");
         return 0;
     }
     return -1;
@@ -164,7 +160,7 @@ static errno_t ctl_connect_fn(kern_ctl_ref kctlref, struct sockaddr_ctl *sac, vo
 static errno_t ctl_disconnect_fn(kern_ctl_ref kctlref, u_int32_t unit, void *unitinfo) {
     if (unit == ctrl_unit) {
         ctrl_unit = 0;
-        printf("[TrustRouter] Disconnected\n");
+        printf("[TrustRouter] Disconnected.\n");
         return 0;
     }
     return -1;

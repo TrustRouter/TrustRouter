@@ -5,8 +5,8 @@ Certificate:
         Signature Algorithm: sha256WithRSAEncryption
         Issuer: CN=DFN
         Validity
-            Not Before: Nov 29 17:19:37 2011 GMT
-            Not After : Nov 28 17:19:37 2012 GMT
+            Not Before: Feb 23 15:42:27 2012 GMT
+            Not After : Jan  1 15:42:27 2022 GMT
         Subject: CN=UNI-POTSDAM
         Subject Public Key Info:
             Public Key Algorithm: rsaEncryption
@@ -47,39 +47,42 @@ Certificate:
                 IPv6:
                   2001:638:807::/48
 
+            Netscape Comment: 
+                This is a fake certificate generated for testing purposes.
     Signature Algorithm: sha256WithRSAEncryption
-        0e:6c:df:72:09:c9:42:f0:d8:56:10:51:a2:93:14:21:02:e8:
-        54:c4:31:3e:41:55:55:c6:f1:60:36:4a:28:7d:7c:89:b1:a3:
-        1d:5c:df:5a:5f:41:83:36:5b:2d:ba:46:24:9d:cd:52:7f:cb:
-        4a:f8:21:10:41:ea:aa:46:3a:b9:a3:f3:da:6f:8d:17:9a:78:
-        6f:0b:32:c1:14:41:4a:69:9a:5d:e5:8a:e3:b9:f3:cf:2d:f0:
-        9a:7b:29:d3:08:bf:e5:52:dc:82:92:ef:29:a8:b7:75:35:52:
-        06:69:7e:44:36:e6:6f:2e:7e:51:63:9b:70:2c:f5:f9:5d:47:
-        e5:7e:d9:74:ba:3a:39:6d:b9:40:b0:61:79:94:5d:e1:83:04:
-        e1:e9:05:a4:87:dc:ff:8a:be:89:0a:d5:35:58:2d:26:54:5a:
-        e6:0f:69:53:af:52:34:21:c1:69:e0:ff:0d:36:8f:6a:bd:f1:
-        0c:67:26:0a:2e:e6:f2:98:bd:e7:c3:0f:0e:d4:e0:43:6e:a1:
-        68:79:5b:ea:a2:6a:f8:3a:26:59:e3:57:f3:c8:3a:fd:14:d2:
-        95:3d:28:cf:66:18:f9:96:e4:b6:91:81:d4:00:bb:6f:08:cf:
-        a2:9b:cc:24:c8:59:61:8c:5f:21:0d:21:67:1f:3c:2d:d3:98:
-        e8:df:a9:e5
+        11:fd:76:6f:d6:17:43:55:89:5d:3b:be:1e:d6:04:81:8a:18:
+        4d:a3:f3:c5:6c:0a:8a:76:38:3c:09:76:0a:96:76:67:29:10:
+        f3:83:e1:de:78:3d:29:f3:2f:31:d9:7a:94:89:d0:8e:a8:25:
+        1a:09:47:d2:27:a6:33:d7:c8:67:68:73:06:c7:73:71:74:6b:
+        34:3b:09:18:5c:58:22:7f:2f:a3:31:e8:b8:ca:b6:5e:ca:9b:
+        07:86:2d:10:cf:66:79:3f:1e:c6:19:04:7c:f2:b1:9b:a2:34:
+        d7:49:2b:8b:96:ff:a6:6f:2d:43:57:d8:09:21:2a:ea:60:b8:
+        09:ba:36:69:2c:e9:d9:6f:53:cd:36:23:8f:53:74:de:86:7e:
+        aa:27:fe:82:f0:0b:ec:ad:4d:67:d5:f4:99:db:08:8f:49:fa:
+        39:81:41:93:57:49:c2:b9:31:d3:58:4c:d3:39:1b:dc:f7:c3:
+        7b:10:b0:53:8c:6c:ef:1f:89:6c:13:69:4d:01:d0:69:14:03:
+        ee:24:fd:c3:8e:1f:b7:5d:07:f2:9c:0e:2f:ef:f6:2b:52:2e:
+        cb:be:61:e1:75:83:0e:52:13:72:f9:a8:dd:d7:35:1d:f6:7b:
+        87:a8:9b:c4:b4:6c:43:f3:75:67:49:3f:96:0b:1f:71:56:a7:
+        50:bc:23:34
 -----BEGIN CERTIFICATE-----
-MIIDNTCCAh2gAwIBAgIBATANBgkqhkiG9w0BAQsFADAOMQwwCgYDVQQDDANERk4w
-HhcNMTExMTI5MTcxOTM3WhcNMTIxMTI4MTcxOTM3WjAWMRQwEgYDVQQDDAtVTkkt
+MIIDgDCCAmigAwIBAgIBATANBgkqhkiG9w0BAQsFADAOMQwwCgYDVQQDDANERk4w
+HhcNMTIwMjIzMTU0MjI3WhcNMjIwMTAxMTU0MjI3WjAWMRQwEgYDVQQDDAtVTkkt
 UE9UU0RBTTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMb0uA/h6xGa
 e0uH94sphiL6tTXMG/FBgF0RxP1rA3++dKAZwcpAGs2TVPBnslC/0M4NGXS9c0+g
 QGSAy8Yh9WaPz/f53SRV9zTnmZPTaZ6m5oVLbRAuRXReCZyua/ON62x0EJmqJBWm
 1JXbemG2aKrxtmq6Nt25+53rFFngGDwr7anjLpxnnwAGBYJpN5In4n5pajIN41qR
 dTrfrWElTLQrm1DthhaN9Yc8zGZ/bdR/LKkDNFxdORO44h+GuYHA7Yg2yBk3Qbkt
 penuVP823kX51wolREKFpalLP6eRnCbgu5O0cm4WLg4/o+fVUVPmsQefskGpjYQQ
-6VGKnQUKAJ8CAwEAAaOBlTCBkjAfBgNVHSMEGDAWgBSapEM+G1qqwzYTLgX5CcjH
+6VGKnQUKAJ8CAwEAAaOB4DCB3TAfBgNVHSMEGDAWgBSapEM+G1qqwzYTLgX5CcjH
 J0g7lzAdBgNVHQ4EFgQU8sbHtirt3L5bfK/pURHHZ5LgVw8wDwYDVR0TAQH/BAUw
 AwEB/zAOBgNVHQ8BAf8EBAMCAQYwLwYIKwYBBQUHAQcBAf8EIDAeMAsEAgABMAUD
-AwCNWTAPBAIAAjAJAwcAIAEGOAgHMA0GCSqGSIb3DQEBCwUAA4IBAQAObN9yCclC
-8NhWEFGikxQhAuhUxDE+QVVVxvFgNkoofXyJsaMdXN9aX0GDNlstukYknc1Sf8tK
-+CEQQeqqRjq5o/Pab40XmnhvCzLBFEFKaZpd5YrjufPPLfCaeynTCL/lUtyCku8p
-qLd1NVIGaX5ENuZvLn5RY5twLPX5XUflftl0ujo5bblAsGF5lF3hgwTh6QWkh9z/
-ir6JCtU1WC0mVFrmD2lTr1I0IcFp4P8NNo9qvfEMZyYKLubymL3nww8O1OBDbqFo
-eVvqomr4OiZZ41fzyDr9FNKVPSjPZhj5luS2kYHUALtvCM+im8wkyFlhjF8hDSFn
-Hzwt05jo36nl
+AwCNWTAPBAIAAjAJAwcAIAEGOAgHMEkGCWCGSAGG+EIBDQQ8FjpUaGlzIGlzIGEg
+ZmFrZSBjZXJ0aWZpY2F0ZSBnZW5lcmF0ZWQgZm9yIHRlc3RpbmcgcHVycG9zZXMu
+MA0GCSqGSIb3DQEBCwUAA4IBAQAR/XZv1hdDVYldO74e1gSBihhNo/PFbAqKdjg8
+CXYKlnZnKRDzg+HeeD0p8y8x2XqUidCOqCUaCUfSJ6Yz18hnaHMGx3NxdGs0OwkY
+XFgify+jMei4yrZeypsHhi0Qz2Z5Px7GGQR88rGbojTXSSuLlv+mby1DV9gJISrq
+YLgJujZpLOnZb1PNNiOPU3Tehn6qJ/6C8AvsrU1n1fSZ2wiPSfo5gUGTV0nCuTHT
+WEzTORvc98N7ELBTjGzvH4lsE2lNAdBpFAPuJP3Djh+3XQfynA4v7/YrUi7LvmHh
+dYMOUhNy+ajd1zUd9nuHqJvEtGxD83VnST+WCx9xVqdQvCM0
 -----END CERTIFICATE-----

@@ -238,16 +238,19 @@
 		2745DE6814916D39005285C7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "trustrouter/trustrouter-Prefix.pch";
 				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				INFOPLIST_FILE = "trustrouter/trustrouter-Info.plist";
 				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
-				MODULE_NAME = "de.m-goderbauer.trustrouter";
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MODULE_NAME = net.trustrouter.kext;
 				MODULE_START = trustrouter_start;
 				MODULE_STOP = trustrouter_stop;
 				MODULE_VERSION = 1.0.0d1;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
 				WRAPPER_EXTENSION = kext;
 			};
 			name = Debug;
@@ -255,16 +258,19 @@
 		2745DE6914916D39005285C7 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "trustrouter/trustrouter-Prefix.pch";
 				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				INFOPLIST_FILE = "trustrouter/trustrouter-Info.plist";
 				INSTALL_PATH = "$(SYSTEM_LIBRARY_DIR)/Extensions";
-				MODULE_NAME = "de.m-goderbauer.trustrouter";
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				MODULE_NAME = net.trustrouter.kext;
 				MODULE_START = trustrouter_start;
 				MODULE_STOP = trustrouter_stop;
 				MODULE_VERSION = 1.0.0d1;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
 				WRAPPER_EXTENSION = kext;
 			};
 			name = Release;
@@ -288,6 +294,7 @@
 				2745DE6914916D39005285C7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

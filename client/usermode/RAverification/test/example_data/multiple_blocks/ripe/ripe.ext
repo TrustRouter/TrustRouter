@@ -5,3 +5,4 @@ subjectKeyIdentifier    = hash
 basicConstraints	= critical, CA:true
 keyUsage         	= critical, keyCertSign,cRLSign
 sbgp-ipAddrBlock	= critical, IPv4:2.0.0.0/8, IPv4:5.0.0.0/8, IPv4:31.0.0.0/8, IPv4:37.0.0.0/8, IPv4:46.0.0.0/8, IPv4:62.0.0.0/8, IPv4:77.0.0.0-95.255.255.255, IPv4:109.0.0.0/8, IPv4:141.0.0.0/8, IPv4:145.0.0.0/8, IPv4:151.0.0.0/8, IPv4:176.0.0.0/8, IPv4:178.0.0.0/8, IPv4:185.0.0.0/8, IPv4:188.0.0.0/8, IPv4:193.0.0.0-195.255.255.255, IPv4:196.200.0.0/13, IPv4:212.0.0.0/7, IPv4:217.0.0.0/8, IPv6:2001:600::-2001:bff:ffff:ffff:ffff:ffff:ffff:ffff, IPv6:2001:1400::/22, IPv6:2001:1a00::-2001:3bff:ffff:ffff:ffff:ffff:ffff:ffff, IPv6:2001:4000::/23, IPv6:2001:4600::/23, IPv6:2001:4a00::-2001:4dff:ffff:ffff:ffff:ffff:ffff:ffff, IPv6:2001:5000::/20, IPv6:2003::/18, IPv6:2a00::/12
+nsComment		= "This is a fake certificate generated for testing purposes."
