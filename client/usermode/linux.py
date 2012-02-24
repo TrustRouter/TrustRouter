@@ -1,11 +1,10 @@
-from subprocess import check_call, CalledProcessError
+#!/usr/bin/env python3
 from socket import AF_INET6
 
 import sys
 import nfqueue
 import shared
 
-IP6TABLES = "ip6tables"
 RA_TYPE = "134"
 
 def cb(payload):
@@ -21,16 +20,7 @@ def cb(payload):
     sys.stdout.flush()
     return 1
 
-def _get_callback(payload, action):
-    def callback():
-        payload.set_verdict(action)
-    return callback
-
-try:
-    # Set ip6tables filtering rule
-    check_call(["ip6tables", "-A", "INPUT", "-p", "icmpv6", "-j", "NFQUEUE",
-              "--icmpv6-type", RA_TYPE, "--queue-num", RA_TYPE])
-
+def main():
     q = nfqueue.queue()
     print("open")
     q.open()
@@ -57,9 +47,13 @@ try:
     print("close")
     q.close()
 
-    # Unset ip6tables filtering rule
-    check_call(["ip6tables", "-D", "INPUT", "-p", "icmpv6", "-j", "NFQUEUE",
-              "--icmpv6-type", RA_TYPE, "--queue-num", RA_TYPE])
-except CalledProcessError:
-    # TODO check for errno usage
-    exit(1)
+def _get_callback(payload, action):
+    def callback():
+        payload.set_verdict(action)
+    return callback
+
+def _cleanup():
+    print("cleanup called")
+
+if __name__ == '__main__':
+    main()
