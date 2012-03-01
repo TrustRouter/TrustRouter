@@ -189,12 +189,14 @@ struct HomeAgentInfo {
 /* SEND Options (see RFC 3971) */
 #define SEND_OPT_SIGNATURE	12
 #define ASN1_BUFFER_SIZE	1024
+#define KEY_HASH_SIZE 16
+#define IPV6_ADDRESS_SIZE 16
 struct SignatureOpt {
-	uint8_t			type;			// 1 byte type
-	uint8_t			length;			// 1 byte length
-	uint16_t		reserved;		// 2 byte reserved
-	unsigned char	key_hash[16];	// 16 byte key-hash (128 most significant bits of SHA-1 hash of the senders public key)
-	unsigned char	*signature;		// variable length PKCS#1 v1.5 signature
+	uint8_t			type;						// 1 byte type
+	uint8_t			length;						// 1 byte length
+	uint16_t		reserved;					// 2 byte reserved
+	unsigned char	key_hash[KEY_HASH_SIZE];	// 16 byte key-hash (128 most significant bits of SHA-1 hash of the senders public key)
+	unsigned char	*signature;					// variable length PKCS#1 v1.5 signature
 };
 
 /* gram.y */

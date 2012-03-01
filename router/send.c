@@ -521,13 +521,15 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		struct AdvPrefix *currentPrefix = iface->AdvPrefixList;
 		X509_PUBKEY *pubKey;
 		EVP_MD_CTX shaContext;
+		FILE *file;
 		unsigned char *asn1;
 		unsigned int asn1Length;
 		unsigned char *messageDigest;
 		unsigned int messageDigestLength;
 		unsigned char *rsaSignature;
 		unsigned int rsaSignatureLength;
-		unsigned int dataLength;
+		unsigned int fixedDataLength;
+		unsigned int totalDataLength;
 
 		// FIXME the configuration file processing should enforce that all prefixes have a certification path set
 		if (sk_num(&currentPrefix->CertificateChain->stack) == 0) {
@@ -545,15 +547,15 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 			flog(LOG_ERR, "Error while converting the public key structure to asn1");
 		}
 		// FIXME direct call of SHA1 is deprecated, use EVP_DigestInit instead
-		memcpy(signature.key_hash, SHA1(asn1, asn1Length, NULL), sizeof(signature.key_hash));
+		memcpy(signature.key_hash, SHA1(asn1, asn1Length, NULL), KEY_HASH_SIZE);
 
 		/* compute the signature */
 		EVP_DigestInit(&shaContext, EVP_sha1());
-		EVP_DigestUpdate(&shaContext, cgaMessageTypeTag, sizeof(cgaMessageTypeTag));
-		EVP_DigestUpdate(&shaContext, &iface->if_addr.__in6_u, sizeof(iface->if_addr.__in6_u));
-		EVP_DigestUpdate(&shaContext, &dest->__in6_u, sizeof(dest->__in6_u));
+		EVP_DigestUpdate(&shaContext, cgaMessageTypeTag, 16);
+		EVP_DigestUpdate(&shaContext, &iface->if_addr.__in6_u, IPV6_ADDRESS_SIZE);
+		EVP_DigestUpdate(&shaContext, &dest->__in6_u, IPV6_ADDRESS_SIZE);
 		/* at this point, the buffer contains the complete ICMP header and all options except the signature */
-		EVP_DigestUpdate(&shaContext, buff, sizeof(len));
+		EVP_DigestUpdate(&shaContext, buff, len);
 		messageDigest = malloc(EVP_MAX_MD_SIZE);
 		EVP_DigestFinal(&shaContext, messageDigest, &messageDigestLength);
 
@@ -561,31 +563,35 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		RSA_sign(NID_sha1, messageDigest, messageDigestLength, rsaSignature, &rsaSignatureLength, iface->PrivateKey);
 
 		signature.signature = rsaSignature;
-		dataLength =	sizeof(signature.type) +
-						sizeof(signature.length) +
-						sizeof(signature.reserved) +
-						strlen((char*)signature.key_hash) +
-						strlen((char*)rsaSignature);
-		if (dataLength + (dataLength % 8) == 0) {
-			signature.length = dataLength;
+		fixedDataLength =	sizeof(signature.type) +
+							sizeof(signature.length) +
+							sizeof(signature.reserved) +
+							KEY_HASH_SIZE;
+
+		totalDataLength = fixedDataLength + RSA_size(iface->PrivateKey);
+
+		if (totalDataLength + (totalDataLength % 8) == 0) {
+			/* no padding to add */
+			signature.length = totalDataLength / 8;
 		} else {
-			signature.length = dataLength + (8 - (dataLength % 8));
+			/* include length of the padding */
+			signature.length = (totalDataLength + (8 - (totalDataLength % 8))) / 8;
 		}
 
 		buff_dest = len;
-		send_ra_inc_len(&len, sizeof(signature));
-		memcpy(buff + buff_dest, &signature, sizeof(signature));
+		send_ra_inc_len(&len, totalDataLength);
+		memcpy(buff + buff_dest, &signature, fixedDataLength);
+		memcpy(buff + buff_dest + fixedDataLength, &(signature.signature), RSA_size(iface->PrivateKey));
 
 		/* add the padding */
-
 		buff_dest = len;
-		send_ra_inc_len(&len, signature.length - dataLength);
-		memset(buff + buff_dest, 0, signature.length - dataLength);
+		send_ra_inc_len(&len, (signature.length * 8) - totalDataLength);
+		memset(buff + buff_dest, 0, (signature.length * 8) - totalDataLength);
 
 		/* free the allocated memory */
 		free(messageDigest);
 		free(rsaSignature);
-		//free(asn1);
+		//free(asn1); // FIXME gives a segmentation fault
 		flog(LOG_INFO, "Signature appended");
 	}
 

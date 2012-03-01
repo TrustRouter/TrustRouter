@@ -59,7 +59,7 @@ process(struct Interface *ifacel, unsigned char *msg, int len,
 	    icmph->icmp6_type != ND_CERTIFICATION_PATH_ADVERT)
 	{
 		/*
-		 *	We just want to listen to RSs and RAs
+		 *	We just want to listen to RSs, RAs, CPSs and CPAs
 		 */
 
 		flog(LOG_ERR, "icmpv6 filter failed");
@@ -92,11 +92,13 @@ process(struct Interface *ifacel, unsigned char *msg, int len,
 	if (icmph->icmp6_type == ND_CERTIFICATION_PATH_ADVERT)
 	{
 		//TODO verify the correctness of the CPA
+		dlog(LOG_DEBUG, 4, "Received CPA message");
 	}
 
 	if (icmph->icmp6_type == ND_CERTIFICATION_PATH_SOLICIT)
 	{
 		//TODO verify the correctness of the CPS
+		dlog(LOG_DEBUG, 4, "Received CPS message");
 	}
 
 	if (icmph->icmp6_code != 0)
