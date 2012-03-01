@@ -141,11 +141,10 @@ class Shared(object):
     def _process_cert_options(self, cpa, intermediate_certs, router_certs):
         for cert_option in cpa.options:
             if isinstance(cert_option, packet.ICMPv6_NDP_Certificate):
-                cert = self._remove_padding(cert_option["certificate"])
                 if cpa["component"] != 0:
-                    intermediate_certs.append(cert)
+                    intermediate_certs.append(cert_option["certificate"])
                 else:
-                    router_certs.append(cert)
+                    router_certs.append(cert_option["certificate"])
                 # TODO: more than one certificate option
                 break
 
@@ -171,10 +170,5 @@ class Shared(object):
     def _ipv6_n_to_a(self, address):
         # Needed to convert router's IP address (normally we would send to router multicast address)
         return "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x" % tuple(address)
-    
 
-    def _remove_padding(self, data):
-        for i in range(len(data) - 1, -1, -1):
-            if data[i] != 0:
-                return data[:i+1]
             
