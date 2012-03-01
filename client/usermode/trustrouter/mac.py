@@ -19,7 +19,7 @@ class MacOSAdapter(object):
             self.socket = socket_
         
         if verifier is None:
-            self.verifier = RA_Verifier()
+            self.verifier = RAVerifier()
         else:
             self.verifier = verifier
         
