@@ -55,6 +55,7 @@ class Shared(object):
                             signed_data,
                             rsa_option["digital_signature"]):
                 print("Valid signature --> accept")
+                sock.close()
                 return True
                 
         print("Invalid Signature --> reject")

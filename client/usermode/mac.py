@@ -38,7 +38,7 @@ class MacOSAdapter(object):
             if self.shared.verify_router_advertisment(packet, scopeid):
                 self._send_result(packet_id, self.ACTION_ACCEPT)
             else:
-                self._send_result(packet_id, self.ACTION_ACCEPT)
+                self._send_result(packet_id, self.ACTION_REJECT)
 
 
     def _send_result(self, id, action):
