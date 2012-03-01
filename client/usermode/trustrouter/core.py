@@ -8,7 +8,7 @@ from trustrouter import security
 
 # see RFC 3971
 CGA_MESSAGE_TYPE_TAG = b"\x08\x6F\xCA\x5E\x10\xB2\x00\xC9\x9C\x8C\xE0\x01\x64\x27\x7C\x08"
-CA_PATH = '/Users/Mike/Desktop/TrustRouter/client/usermode/security/test/example_data/only_one_block/ripe/ripe.cer'
+CA_PATH = '/Users/Mike/Desktop/MPRepro/TrustRouter/client/usermode/trustrouter/security/test/example_data/only_one_block/ripe/ripe.cer'
 #CA_PATH = 'C:\\Users\\Thomas\\Uni\\SEND\\VMshare\\TrustRouter\\client\\usermode\\security\\test\\example_data\\only_one_block\\ripe\\ripe.cer'
 class RAVerifier(object):
 
