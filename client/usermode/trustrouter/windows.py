@@ -2,7 +2,7 @@ import win32file
 import sys
 import struct
 import time
-import shared
+from trustrouter.core import RAVerifier
 
 class WindowsAdapter(object):
     CALLOUT_DRIVER_NAME = "\\\\.\\SendCallout"
@@ -21,7 +21,7 @@ class WindowsAdapter(object):
             0,
             0)
         if shared_ is None:
-            self.shared = shared.Shared()
+            self.shared = RAVerifier()
         else:
             self.shared = shared_
     
@@ -56,7 +56,7 @@ class WindowsAdapter(object):
             result = bytearray()
             result.extend(address_byte_array)
 
-            if self.shared.verify_router_advertisment(packet_byte_array, interface_index):                
+            if self.shared.verify(packet_byte_array, interface_index):                
                 action = self.ACTION_PERMIT
             else:
                 action = self.ACTION_BLOCK

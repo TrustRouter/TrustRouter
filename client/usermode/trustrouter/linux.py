@@ -3,15 +3,15 @@ from socket import AF_INET6
 
 import sys
 import nfqueue
-import shared
+from trustrouter.core import RAVerifier
 
 RA_TYPE = "134"
 
 def cb(payload):
     print("python callback called!")
 
-    common_part = shared.Shared()
-    if common_part.verify_router_advertisment(
+    common_part = RAVerifier()
+    if common_part.verify(
             payload.get_data(),
             payload.get_indev()):
         payload.set_verdict(nfqueue.NF_ACCEPT)

@@ -1,7 +1,7 @@
 import socket
 import struct
 
-import shared
+from trustrouter.core import RAVerifier
 
 class MacOSAdapter(object):
 
@@ -10,7 +10,7 @@ class MacOSAdapter(object):
     ACTION_REJECT = 1
     ACTION_ACCEPT = 0
     
-    def __init__(self, socket_=None, shared_=None):
+    def __init__(self, socket_=None, verifier=None):
         if socket_ is None:
             self.socket = socket.socket(socket.PF_SYSTEM,
                                         socket.SOCK_STREAM,
@@ -18,10 +18,10 @@ class MacOSAdapter(object):
         else:
             self.socket = socket_
         
-        if shared_ is None:
-            self.shared = shared.Shared()
+        if verifier is None:
+            self.verifier = RA_Verifier()
         else:
-            self.shared = shared_
+            self.verifier = verifier
         
 
     def main(self):
@@ -36,7 +36,7 @@ class MacOSAdapter(object):
             packet.extend(self._readBytes(payload_length))
 
             try:
-                verified_ra = self.shared.verify_router_advertisment(packet, scopeid)
+                verified_ra = self.verifier.verify(packet, scopeid)
             except:
                 # something went wrong during verification
                 verified_ra = False
