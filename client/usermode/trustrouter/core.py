@@ -5,11 +5,11 @@ import time
 
 from trustrouter import packet
 from trustrouter import security
+from trustrouter.certificates import trust_anchors
 
 # see RFC 3971
 CGA_MESSAGE_TYPE_TAG = b"\x08\x6F\xCA\x5E\x10\xB2\x00\xC9\x9C\x8C\xE0\x01\x64\x27\x7C\x08"
-CA_PATH = '/Users/Mike/Desktop/MPRepro/TrustRouter/client/usermode/trustrouter/security/test/example_data/only_one_block/ripe/ripe.cer'
-#CA_PATH = 'C:\\Users\\Thomas\\Uni\\SEND\\VMshare\\TrustRouter\\client\\usermode\\security\\test\\example_data\\only_one_block\\ripe\\ripe.cer'
+
 class RAVerifier(object):
 
     def verify(self, data, scopeid):
@@ -152,7 +152,7 @@ class RAVerifier(object):
     def _verify(self, router_certs, intermediate_certs, prefix_option, signed_data, signature):
         for router_cert in router_certs:                
             if not security.verify_prefix_with_cert(
-                    CA_PATH,
+                    trust_anchors,
                     intermediate_certs,
                     router_cert, prefix_option["prefix"],
                     prefix_option["prefix_length"]):
