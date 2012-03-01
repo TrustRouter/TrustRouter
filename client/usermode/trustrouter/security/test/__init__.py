@@ -5,9 +5,9 @@
 import sys
 import os
 from unittest import TestCase, TestSuite, TextTestRunner
-from RAverification import verify_prefix_with_cert, verify_cert, verify_signature
+from security import verify_prefix_with_cert, verify_cert, verify_signature
 
-class TestRAverification(TestCase):
+class TestRAVerification(TestCase):
 
     module_path = os.path.abspath(__file__)
     module_directory = os.path.split(module_path)[0]
@@ -56,6 +56,9 @@ class TestRAverification(TestCase):
     ra_signature = fh.read()
     fh.close()
 
+    fh = open(ripe_o_der_path, "rb")
+    ripe_o_der = fh.read()
+    fh.close()
     fh = open(dfn_o_der_path, "rb")
     dfn_o_der = fh.read()
     fh.close()
@@ -77,6 +80,9 @@ class TestRAverification(TestCase):
     fh = open(router3_o_der_path, "rb")
     router3_o_der = fh.read()
     fh.close()
+    fh = open(ripe_m_der_path, "rb")
+    ripe_m_der = fh.read()
+    fh.close()
     fh = open(dfn_m_der_path, "rb")
     dfn_m_der = fh.read()
     fh.close()
@@ -97,29 +103,29 @@ class TestRAverification(TestCase):
     prefix_ext_1 = "IPv6:2001:0638::/32"
 
     def setUp(self):
-        self.ripe_o_pem_path = TestRAverification.ripe_o_pem_path
-        self.ripe_m_pem_path = TestRAverification.ripe_m_pem_path
-        self.dfn_o_der = TestRAverification.dfn_o_der
-        self.dfn_m_der = TestRAverification.dfn_m_der
-        self.uni_o_der = TestRAverification.uni_o_der
-        self.uni_m_der = TestRAverification.uni_m_der
-        self.hpi_o_der = TestRAverification.hpi_o_der
-        self.hpi_m_der = TestRAverification.hpi_m_der
-        self.router0_o_der = TestRAverification.router0_o_der
-        self.router0_m_der = TestRAverification.router0_m_der
-        self.router1_o_der = TestRAverification.router1_o_der
-        self.router2_o_der = TestRAverification.router2_o_der
-        self.router3_o_der = TestRAverification.router3_o_der
-        self.prefix_b = TestRAverification.prefix_b
-        self.prefix_length = TestRAverification.prefix_length
-        self.prefix_bad = TestRAverification.prefix_bad
-        self.signed_ra = TestRAverification.signed_ra
-        self.ra_signature = TestRAverification.ra_signature
+        self.ripe_o_der = TestRAVerification.ripe_o_der
+        self.ripe_m_der = TestRAVerification.ripe_m_der
+        self.dfn_o_der = TestRAVerification.dfn_o_der
+        self.dfn_m_der = TestRAVerification.dfn_m_der
+        self.uni_o_der = TestRAVerification.uni_o_der
+        self.uni_m_der = TestRAVerification.uni_m_der
+        self.hpi_o_der = TestRAVerification.hpi_o_der
+        self.hpi_m_der = TestRAVerification.hpi_m_der
+        self.router0_o_der = TestRAVerification.router0_o_der
+        self.router0_m_der = TestRAVerification.router0_m_der
+        self.router1_o_der = TestRAVerification.router1_o_der
+        self.router2_o_der = TestRAVerification.router2_o_der
+        self.router3_o_der = TestRAVerification.router3_o_der
+        self.prefix_b = TestRAVerification.prefix_b
+        self.prefix_length = TestRAVerification.prefix_length
+        self.prefix_bad = TestRAVerification.prefix_bad
+        self.signed_ra = TestRAVerification.signed_ra
+        self.ra_signature = TestRAVerification.ra_signature
 
     def test_verify_prefix(self):
         self.assertTrue(
             verify_prefix_with_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [],
                 self.dfn_o_der,
                 self.prefix_b,
@@ -128,7 +134,7 @@ class TestRAverification(TestCase):
         ) 
         self.assertTrue(
             verify_prefix_with_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [self.dfn_o_der],
                 self.uni_o_der,
                 self.prefix_b,
@@ -137,7 +143,7 @@ class TestRAverification(TestCase):
         ) 
         self.assertFalse(
             verify_prefix_with_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [],
                 self.uni_o_der,
                 self.prefix_b,
@@ -146,7 +152,7 @@ class TestRAverification(TestCase):
         )
         self.assertTrue(
             verify_prefix_with_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [self.dfn_o_der, self.uni_o_der, self.hpi_o_der],
                 self.router1_o_der,
                 self.prefix_b,
@@ -155,7 +161,7 @@ class TestRAverification(TestCase):
         ) 
         self.assertFalse(
             verify_prefix_with_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [self.dfn_o_der, self.uni_o_der, self.hpi_o_der],
                 self.router2_o_der,
                 self.prefix_b,
@@ -164,7 +170,7 @@ class TestRAverification(TestCase):
         )
         self.assertFalse(
             verify_prefix_with_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [self.dfn_o_der, self.uni_o_der, self.hpi_o_der],
                 self.router3_o_der,
                 self.prefix_b,
@@ -173,7 +179,7 @@ class TestRAverification(TestCase):
         )
         self.assertFalse(
             verify_prefix_with_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [self.dfn_o_der, self.uni_o_der, self.hpi_o_der],
                 self.router1_o_der,
                 self.prefix_b,
@@ -182,7 +188,7 @@ class TestRAverification(TestCase):
         )
         self.assertFalse(
             verify_prefix_with_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [],
                 self.dfn_o_der,
                 self.prefix_bad,
@@ -191,7 +197,7 @@ class TestRAverification(TestCase):
         )
         self.assertFalse(
             verify_prefix_with_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [self.dfn_o_der, self.uni_o_der, self.hpi_o_der],
                 self.router1_o_der,
                 self.prefix_bad,
@@ -200,7 +206,7 @@ class TestRAverification(TestCase):
         )
         self.assertTrue(
             verify_prefix_with_cert(
-                self.ripe_m_pem_path,
+                [self.ripe_m_der],
                 [],
                 self.dfn_m_der,
                 self.prefix_b,
@@ -209,7 +215,7 @@ class TestRAverification(TestCase):
         ) 
         self.assertTrue(
             verify_prefix_with_cert(
-                self.ripe_m_pem_path,
+                [self.ripe_m_der],
                 [self.dfn_m_der],
                 self.uni_m_der,
                 self.prefix_b,
@@ -218,7 +224,7 @@ class TestRAverification(TestCase):
         ) 
         self.assertFalse(
             verify_prefix_with_cert(
-                self.ripe_m_pem_path,
+                [self.ripe_m_der],
                 [],
                 self.uni_m_der,
                 self.prefix_b,
@@ -227,7 +233,7 @@ class TestRAverification(TestCase):
         )
         self.assertTrue(
             verify_prefix_with_cert(
-                self.ripe_m_pem_path,
+                [self.ripe_m_der],
                 [self.dfn_m_der, self.uni_m_der, self.hpi_m_der],
                 self.router0_m_der,
                 self.prefix_b,
@@ -236,7 +242,7 @@ class TestRAverification(TestCase):
         )
         self.assertTrue(
             verify_prefix_with_cert(
-                self.ripe_m_pem_path,
+                [self.ripe_m_der],
                 [self.dfn_m_der, self.uni_m_der, self.hpi_m_der],
                 self.router0_m_der + b'\x00',
                 self.prefix_b,
@@ -245,7 +251,7 @@ class TestRAverification(TestCase):
         )
         self.assertTrue(
             verify_prefix_with_cert(
-                self.ripe_m_pem_path,
+                [self.ripe_m_der],
                 [self.dfn_m_der + b'\x00', self.uni_m_der, self.hpi_m_der],
                 self.router0_m_der,
                 self.prefix_b,
@@ -254,7 +260,7 @@ class TestRAverification(TestCase):
         )
         self.assertTrue(
             verify_prefix_with_cert(
-                self.ripe_m_pem_path,
+                [self.ripe_m_der],
                 [self.dfn_m_der, self.uni_m_der + b'\x00', self.hpi_m_der],
                 self.router0_m_der,
                 self.prefix_b,
@@ -263,7 +269,7 @@ class TestRAverification(TestCase):
         )
         self.assertTrue(
             verify_prefix_with_cert(
-                self.ripe_m_pem_path,
+                [self.ripe_m_der],
                 [self.dfn_m_der, self.uni_m_der, self.hpi_m_der + b'\x00'],
                 self.router0_m_der,
                 self.prefix_b,
@@ -272,7 +278,7 @@ class TestRAverification(TestCase):
         )
         self.assertFalse(
             verify_prefix_with_cert(
-                self.ripe_m_pem_path,
+                [self.ripe_m_der],
                 [self.dfn_m_der, self.uni_m_der, self.hpi_m_der],
                 self.router0_m_der,
                 self.prefix_b,
@@ -281,7 +287,7 @@ class TestRAverification(TestCase):
         )
         self.assertFalse(
             verify_prefix_with_cert(
-                self.ripe_m_pem_path,
+                [self.ripe_m_der],
                 [],
                 self.dfn_m_der,
                 self.prefix_bad,
@@ -290,61 +296,61 @@ class TestRAverification(TestCase):
         )
 
     def test_verify_cert(self):
-        self.assertTrue(verify_cert(self.ripe_o_pem_path, [], self.dfn_o_der))
-        self.assertTrue(verify_cert(self.ripe_o_pem_path, [self.dfn_o_der], self.uni_o_der))
-        self.assertFalse(verify_cert(self.ripe_o_pem_path, [], self.uni_o_der))
+        self.assertTrue(verify_cert([self.ripe_o_der], [], self.dfn_o_der))
+        self.assertTrue(verify_cert([self.ripe_o_der], [self.dfn_o_der], self.uni_o_der))
+        self.assertFalse(verify_cert([self.ripe_o_der], [], self.uni_o_der))
         self.assertTrue(
             verify_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [self.dfn_o_der, self.uni_o_der, self.hpi_o_der],
                 self.router1_o_der
             )
         )
         self.assertTrue(
             verify_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [self.dfn_o_der + b'\x00', self.uni_o_der, self.hpi_o_der],
                 self.router1_o_der
             )
         )
         self.assertTrue(
             verify_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [self.dfn_o_der, self.uni_o_der + b'\x00', self.hpi_o_der],
                 self.router1_o_der
             )
         )
         self.assertTrue(
             verify_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [self.dfn_o_der, self.uni_o_der, self.hpi_o_der + b'\x00'],
                 self.router1_o_der
             )
         )
         self.assertTrue(
             verify_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [self.dfn_o_der, self.uni_o_der, self.hpi_o_der],
                 self.router1_o_der + b'\x00'
             )
         )
         self.assertFalse(
             verify_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [self.dfn_o_der, self.uni_o_der, self.hpi_o_der],
                 self.router2_o_der
             )
         )
         self.assertFalse(
             verify_cert(
-                self.ripe_o_pem_path,
+                [self.ripe_o_der],
                 [self.dfn_o_der, self.uni_o_der, self.hpi_o_der],
                 self.router3_o_der
             )
         )
         self.assertTrue(
             verify_cert(
-                self.ripe_m_pem_path,
+                [self.ripe_m_der],
                 [self.dfn_m_der, self.uni_m_der, self.hpi_m_der],
                 self.router0_m_der
             )
@@ -359,8 +365,8 @@ class TestRAverification(TestCase):
 
 def run_tests():
     suite = TestSuite()
-    suite.addTest(TestRAverification('test_verify_prefix'))
-    suite.addTest(TestRAverification('test_verify_cert'))
-    suite.addTest(TestRAverification('test_verify_signature'))
+    suite.addTest(TestRAVerification('test_verify_prefix'))
+    suite.addTest(TestRAVerification('test_verify_cert'))
+    suite.addTest(TestRAVerification('test_verify_signature'))
     runner = TextTestRunner()
     runner.run(suite)

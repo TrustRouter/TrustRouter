@@ -9,12 +9,14 @@ static STACK_OF(X509) *load_certs_der(
     const char* certs_der
 );
 static STACK_OF(X509) *get_verified_chain(
-    const char* CAfile,
+    int CA_der_count,
+    int CA_der_length,
+    const char* CAs_der,
     int untrusted_der_count,
     int untrusted_der_length,
     const char* untrusted_der,
-    const char* cert_der,
-    int cert_der_length
+    int cert_der_length,
+    const char* cert_der
 );
 
 // verify if prefix is part of the resources listed in cert
@@ -22,12 +24,14 @@ static STACK_OF(X509) *get_verified_chain(
 // prefix_as_ext is the text-representation of an ip-address block like you would specify in an extension file
 // when creating a certificate, e.g. IPv6:2001:0638::/32
 int verify_prefix_with_cert(
-    const char* CAfile, 
+    int CA_der_count,
+    int CA_der_length,
+    const char* CAs_der, 
     int untrusted_der_count,
     int untrusted_der_length,
     const char* untrusted_der,
-    const char* cert_der,
     int cert_der_length,
+    const char* cert_der,
     char* prefix_as_ext
 ) 
 {
@@ -45,12 +49,14 @@ int verify_prefix_with_cert(
     X509_EXTENSION_free(prefix_ext);
 
     chain = get_verified_chain(
-        CAfile,
+        CA_der_count,
+        CA_der_length,
+        CAs_der,
         untrusted_der_count,
         untrusted_der_length,
         untrusted_der,
-        cert_der,
-        cert_der_length
+        cert_der_length,
+        cert_der
     );
 
     if (chain == NULL) {
@@ -67,24 +73,27 @@ end:
 
 
 int verify_cert(
-    const char* CAfile,
+    int CA_der_count,
+    int CA_der_length,
+    const char* CAs_der,
     int untrusted_der_count,
     int untrusted_der_length,
     const char* untrusted_der,
-    const char* cert_der,
-    int cert_der_length
+    int cert_der_length,
+    const char* cert_der
 )     
 {     
     int ret = 0;     
     STACK_OF(X509) *chain = NULL;
-
     chain = get_verified_chain(
-        CAfile,
+        CA_der_count,
+        CA_der_length,
+        CAs_der,
         untrusted_der_count,
         untrusted_der_length,
         untrusted_der,
-        cert_der,
-        cert_der_length
+        cert_der_length,
+        cert_der
     );
 
     if (chain == NULL) {
@@ -98,22 +107,32 @@ int verify_cert(
 }
 
 static STACK_OF(X509) *get_verified_chain(
-    const char* CAfile,
+    int CA_der_count,
+    int CA_der_length,
+    const char* CAs_der,
     int untrusted_der_count,
     int untrusted_der_length,
     const char* untrusted_der,
-    const char* cert_der,
-    int cert_der_length
+    int cert_der_length,
+    const char* cert_der
 )
 {
-    X509_STORE *store = NULL;
     X509_STORE_CTX store_ctx;
     X509_LOOKUP *lookup = NULL;
     X509 *cert = NULL;
     STACK_OF(X509) *untrusted = NULL;
+    STACK_OF(X509) *CAs = NULL;
     STACK_OF(X509) *chain = NULL;
 
     OpenSSL_add_all_algorithms();
+
+    if (CA_der_count > 0) {
+        CAs = (STACK_OF(X509)*) load_certs_der(
+            CA_der_count,
+            CA_der_length,
+            CAs_der
+        );
+    }
 
     if (untrusted_der_count > 0) {
         untrusted = (STACK_OF(X509)*) load_certs_der(
@@ -123,30 +142,14 @@ static STACK_OF(X509) *get_verified_chain(
         );
     }
 
-    store = X509_STORE_new();
-    if (store == NULL) {
-        chain = NULL;
-        goto end;
-    }   
-
-    lookup = X509_STORE_add_lookup(store, X509_LOOKUP_file());
-    if (lookup == NULL) {
-        chain = NULL;
-        goto end;        
-    }
-
-    if (!X509_LOOKUP_load_file(lookup, CAfile, X509_FILETYPE_PEM)) {
-        chain = NULL;
-        goto end;        
-    }
-
     cert = d2i_X509(NULL, (const unsigned char **) &cert_der, cert_der_length);
     if (cert == NULL) {
         chain = NULL;
         goto end;
     }
-    X509_STORE_set_flags(store, 0);
-    X509_STORE_CTX_init(&store_ctx, store, cert, untrusted);
+
+    X509_STORE_CTX_init(&store_ctx, NULL, cert, untrusted);
+    X509_STORE_CTX_trusted_stack(&store_ctx, CAs);
 
     if (X509_verify_cert(&store_ctx) <= 0) {
         // no chain for the certificate can be constructed
@@ -160,18 +163,18 @@ static STACK_OF(X509) *get_verified_chain(
 
 end:
     if (cert != NULL) X509_free(cert);
-    if (store != NULL) X509_STORE_free(store);
     if (untrusted != NULL) sk_X509_pop_free(untrusted, X509_free);
+    if (CAs != NULL) sk_X509_pop_free(CAs, X509_free);
     EVP_cleanup();
     return chain;
 }
 
 int verify_signature(
-    const char* cert_der,
     int cert_der_length,
+    const char* cert_der,
     unsigned char* signature,
-    const unsigned char* signed_data,
-    const unsigned int signed_data_length
+    const unsigned int signed_data_length,
+    const unsigned char* signed_data
 )
 {
     X509 *cert = NULL;

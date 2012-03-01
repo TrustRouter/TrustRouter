@@ -17,26 +17,30 @@
 #endif
 
 DLLExport int verify_prefix_with_cert(
-    const char* CAfile, 
+    int CA_der_count,
+    int CA_der_length,
+    const char* CAs_der, 
     int untrusted_der_count,
     int untrusted_der_length,
     const char* untrusted_der,
-    const char* cert_der,
     int cert_der_length,
+    const char* cert_der,
     char* prefix_as_ext
 );
 DLLExport int verify_cert(
-    const char* CAfile,
+    int CA_der_count,
+    int CA_der_length,
+    const char* CAs_der,
     int untrusted_der_count,
     int untrusted_der_length,
     const char* untrusted_der,
-    const char* cert_der,
-    int cert_der_length
+    int cert_der_length,
+    const char* cert_der
 );
 DLLExport int verify_signature(
-    const char* cert_der,
     int cert_der_length,
+    const char* cert_der,
     unsigned char* signature,
-    const unsigned char* signed_data,
-    const unsigned int signed_data_length
+    const unsigned int signed_data_length,
+    const unsigned char* signed_data
 );

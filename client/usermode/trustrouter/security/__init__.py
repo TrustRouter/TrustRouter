@@ -40,15 +40,15 @@ if not os.path.isfile(lib_directory + lib_name):
 libsecurity = CDLL(lib_directory + lib_name)
 
 _verify_cert = libsecurity.verify_cert
-_verify_cert.argtypes = [c_char_p, c_int, c_int, c_char_p, c_char_p, c_int]
+_verify_cert.argtypes = [c_int, c_int, c_char_p, c_int, c_int, c_char_p, c_int, c_char_p]
 _verify_cert.restype = c_int
 
 _verify_signature = libsecurity.verify_signature
-_verify_signature.argtypes = [c_char_p, c_int, c_char_p, c_char_p, c_int]
+_verify_signature.argtypes = [c_int, c_char_p, c_char_p, c_int, c_char_p]
 _verify_signature.restype = c_int
 
 _verify_prefix_with_cert = libsecurity.verify_prefix_with_cert
-_verify_prefix_with_cert.argtypes = [c_char_p, c_int, c_int, c_char_p, c_char_p, c_int, c_char_p]
+_verify_prefix_with_cert.argtypes = [c_int, c_int, c_char_p, c_int, c_int, c_char_p, c_int, c_char_p, c_char_p]
 _verify_prefix_with_cert.restype = c_int
 
 def _format_to_bytes(string):
@@ -78,53 +78,59 @@ def _get_ipaddrblock_ext(prefix, prefix_length):
     ext += str(prefix_length)
     return ext
 
-def _format_untrusted(untrusted_certs):
-    certs_count = len(untrusted_certs)
+def _format_certs_der(certs_der):
+    certs_count = len(certs_der)
     cert_length = 0
-    untrusted = None
+    certs_param = None
 
     if certs_count == 0:
-        return (certs_count, cert_length, untrusted)
+        return (certs_count, cert_length, certs_param)
     else:
-        cert_length = len(max(untrusted_certs, key=len))
-        untrusted = b''
-        for cert in untrusted_certs:
-            untrusted += cert
-            untrusted += (cert_length - len(cert)) * b'\x00'
-        return (certs_count, cert_length, untrusted)
+        cert_length = len(max(certs_der, key=len))
+        certs_param = b''
+        for cert in certs_der:
+            certs_param += cert
+            certs_param += (cert_length - len(cert)) * b'\x00'
+        return (certs_count, cert_length, certs_param)
 
 # OpenSSL Return-Value  : bool
 #               0       : False
 #               1       : True
 #           -1 (error)  : False --> better a false negative than a false positive
 
-# str(path_to_PEM_file), list<bytes(DER-encoded cert)>, bytes(DER-encoded cert)  
-def verify_cert(CAcert_path, untrusted_certs, cert):
-    untrusted = _format_untrusted(untrusted_certs)
+# list<bytes(DER-encoded cert)>, list<bytes(DER-encoded cert)>, bytes(DER-encoded cert)  
+def verify_cert(CA_certs, untrusted_certs, cert):
+    CAs = _format_certs_der(CA_certs)
+    untrusted = _format_certs_der(untrusted_certs)
     valid = -1
     valid = _verify_cert(
-        _format_to_bytes(CAcert_path),
+        CAs[0],
+        CAs[1],
+        CAs[2],
         untrusted[0],
         untrusted[1],
         untrusted[2],    
-        cert,
-        len(cert)
+        len(cert),
+        cert
     )
     return 0 < valid
 
 # CA and untrusted are needed, because the resources in cert could be inherited
-# str(path_to_PEM_file), list<bytes(DER-encoded cert)>, bytes(DER-encoded cert), bytearray(prefix), int(prefix_length)
-def verify_prefix_with_cert(CAcert_path, untrusted_certs, cert, prefix, prefix_length):
+# list<bytes(DER-encoded cert)>, list<bytes(DER-encoded cert)>, bytes(DER-encoded cert), bytearray(prefix), int(prefix_length)
+def verify_prefix_with_cert(CA_certs, untrusted_certs, cert, prefix, prefix_length):
     prefix_ext = _get_ipaddrblock_ext(bytes(prefix), prefix_length)
-    untrusted = _format_untrusted(untrusted_certs)
+    CAs = _format_certs_der(CA_certs)
+    untrusted = _format_certs_der(untrusted_certs)
     valid = -1
     valid = _verify_prefix_with_cert(
-        _format_to_bytes(CAcert_path),
+        CAs[0],
+        CAs[1],
+        CAs[2],
         untrusted[0],
         untrusted[1],
         untrusted[2],
-        cert,
         len(cert),
+        cert,
         _format_to_bytes(prefix_ext)
     )
 
@@ -140,11 +146,11 @@ def verify_signature(signing_cert, signed_data, signature):
     signed_data = bytes(signed_data) 
     signed = -1
     signed = _verify_signature(
-        signing_cert,
         len(signing_cert), 
-        signature, 
-        signed_data, 
-        len(signed_data)
+        signing_cert,
+        signature,
+        len(signed_data), 
+        signed_data
     )
 
     return 0 < signed
