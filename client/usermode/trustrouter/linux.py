@@ -2,7 +2,7 @@
 from socket import AF_INET6
 
 import sys
-import nfqueue
+from trustrouter import nfqueue
 from trustrouter.core import RAVerifier
 
 RA_TYPE = "134"
@@ -21,7 +21,7 @@ def cb(payload):
     sys.stdout.flush()
     return 1
 
-def main():
+def run():
     q = nfqueue.queue()
     print("open")
     q.open()
@@ -47,9 +47,3 @@ def main():
 
     print("close")
     q.close()
-
-def _cleanup():
-    print("cleanup called")
-
-if __name__ == '__main__':
-    main()
