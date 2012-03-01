@@ -7,6 +7,7 @@ import shared
 class WindowsAdapter(object):
     CALLOUT_DRIVER_NAME = "\\\\.\\SendCallout"
     POINTER_LENGTH = struct.calcsize("P")
+    UNSIGNED_INTEGER_LENGTH = struct.calcsize("I")
     ACTION_BLOCK = "B"
     ACTION_PERMIT = "P"
 
@@ -36,7 +37,7 @@ class WindowsAdapter(object):
                 print("Tried ReadFile, got nothing.")
                 pass
 
-            time.sleep(10)
+            time.sleep(1)
 
         return result_buffer
 
@@ -44,25 +45,24 @@ class WindowsAdapter(object):
         while True:
             result_buffer = self.read_from_callout_until_success()
             address_byte_array = bytearray(result_buffer[:self.POINTER_LENGTH])
-            packet_byte_array = bytearray(result_buffer[self.POINTER_LENGTH:])
+            interface_index = bytearray(result_buffer[self.POINTER_LENGTH:self.POINTER_LENGTH + self.UNSIGNED_INTEGER_LENGTH])
+            packet_byte_array = bytearray(result_buffer[(self.POINTER_LENGTH + self.UNSIGNED_INTEGER_LENGTH):])
 
-            for packet_byte in packet_byte_array:
-                print ("\\x%02x" % packet_byte, end="")
+            interface_index = struct.unpack("@I", interface_index)[0]
 
-            reject_callback = self._get_callback(address_byte_array, self.ACTION_BLOCK)
-            accept_callback = self._get_callback(address_byte_array, self.ACTION_PERMIT)
+            #for packet_byte in packet_byte_array:
+            #   print ("\\x%02x" % packet_byte, end="")
 
-            self.shared.new_packet(packet_byte_array, accept_callback, reject_callback)
-
-
-    def _get_callback(self, address_byte_array, action):
-        def callback():
             result = bytearray()
             result.extend(address_byte_array)
-            result.extend(struct.pack("c", bytes(action, encoding="ascii")));
 
+            if self.shared.verify_router_advertisment(packet_byte_array, interface_index):                
+                action = self.ACTION_PERMIT
+            else:
+                action = self.ACTION_BLOCK
+                
+            result.extend(struct.pack("c", bytes(action, encoding="ascii")))
             win32file.WriteFile(self.callout, result, None)
-        return callback
 
 
 if __name__ == "__main__":
