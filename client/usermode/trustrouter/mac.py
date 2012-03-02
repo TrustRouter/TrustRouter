@@ -1,5 +1,6 @@
 import socket
 import struct
+import syslog
 
 from trustrouter.core import RAVerifier
 
@@ -19,7 +20,10 @@ class MacOSAdapter(object):
             self.socket = socket_
         
         if verifier is None:
-            self.verifier = RAVerifier()
+            syslog.openlog("TrustRouter")
+            def log(string):
+                syslog.syslog(syslog.LOG_ALERT, string)
+            self.verifier = RAVerifier(log)
         else:
             self.verifier = verifier
         

@@ -4,6 +4,6 @@ packet = b"\x60\x00\x00\x00\x01\xc8\x3a\xff\xfe\x80\x00\x00\x00\x00\x00\x00\x2c\
 
 verifier = RAVerifier()
 
-result = verifier.verify(packet, 10)
+result = verifier.verify(packet, 4)
 
 print(result)

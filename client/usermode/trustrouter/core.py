@@ -12,16 +12,19 @@ CGA_MESSAGE_TYPE_TAG = b"\x08\x6F\xCA\x5E\x10\xB2\x00\xC9\x9C\x8C\xE0\x01\x64\x2
 
 class RAVerifier(object):
 
+    def __init__(self, log_fn=print):
+        self.log = log_fn
+
     def verify(self, data, scopeid):
         ra = packet.IPv6(data)
         rsa_option, prefix_options, icmp_data = self._extract_info(ra)
 
         if rsa_option is None:
-            print("Unsigned RA --> accept")
+            self.log("Unsigned RA --> accept")
             return True
 
         if rsa_option is not ra.payload.options[-1]:
-            print("Found data after RSA option --> reject")
+            self.log("Found data after RSA option --> reject")
             return False
         
         if len(prefix_options) != 1:
@@ -54,11 +57,11 @@ class RAVerifier(object):
                             prefix_option,
                             signed_data,
                             rsa_option["digital_signature"]):
-                print("Valid signature --> accept")
+                self.log("Valid signature --> accept")
                 sock.close()
                 return True
                 
-        print("Invalid Signature --> reject")
+        self.log("Invalid Signature --> reject")
         sock.close()
         return False
 
@@ -110,6 +113,7 @@ class RAVerifier(object):
     
 
     def _send_cps(self, sock, scopeid, address):
+        self.log("request certificates")
         identifier = random.randint(0, (2 ** 16) - 1)
         cps = struct.pack("!BBHHH", 148, 0, 0, identifier, 65535)
         # send to all routers multicast address
@@ -124,7 +128,6 @@ class RAVerifier(object):
         try:
             cpa_data, from_addr = sock.recvfrom(65535)
         except socket.timeout:
-            print("Timeout")
             return None
 
         if from_addr[3] != scopeid or cpa_data[0] != 149:
@@ -134,7 +137,6 @@ class RAVerifier(object):
         if cpa["identifier"] != identifier and cpa["identifier"] != 0:
             return None
         
-        print(cpa["component"])
         return cpa
     
 
