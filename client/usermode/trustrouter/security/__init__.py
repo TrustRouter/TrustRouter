@@ -56,7 +56,7 @@ def _format_to_bytes(string):
         return string
     else:
         assert isinstance(string, str)
-        return bytes(string.encode(sys.stdin.encoding))
+        return bytes(string.encode("ascii"))
 
 def _ipv4_n_to_a(address):
     return "%u.%u.%u.%u" % tuple(address)
