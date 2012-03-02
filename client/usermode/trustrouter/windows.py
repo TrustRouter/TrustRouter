@@ -11,7 +11,7 @@ class WindowsAdapter(object):
     ACTION_BLOCK = "B"
     ACTION_PERMIT = "P"
 
-    def __init__(self, shared_=None):
+    def __init__(self, shared_=None, log_fn=print):
         self.callout = win32file.CreateFile(
             self.CALLOUT_DRIVER_NAME,
             win32file.GENERIC_READ | win32file.GENERIC_WRITE,
@@ -20,8 +20,9 @@ class WindowsAdapter(object):
             win32file.OPEN_EXISTING,
             0,
             0)
+        self.log = log_fn
         if shared_ is None:
-            self.shared = RAVerifier()
+            self.shared = RAVerifier(self.log)
         else:
             self.shared = shared_
     
@@ -63,6 +64,6 @@ class WindowsAdapter(object):
         result.extend(struct.pack("c", bytes(action, encoding="ascii")))
         win32file.WriteFile(self.callout, result, None)
 		
-def run():
-	adapter = WindowsAdapter()
+def run(log_fn):
+	adapter = WindowsAdapter(log_fn=log_fn)
 	adapter.main()
