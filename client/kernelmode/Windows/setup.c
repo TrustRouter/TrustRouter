@@ -7,8 +7,13 @@
 #pragma comment (lib, "fwpuclnt.lib")
 #pragma comment(lib, "Rpcrt4.lib")
 
+// {80E84D14-A7DD-4b5f-B5BD-51BCD21EAA49}
 DEFINE_GUID(SEND_CALLOUT_DRIVER, 
-0x252ed6b3, 0x2265, 0x4621, 0xb9, 0x1a, 0x9e, 0xb2, 0xc7, 0x3b, 0x45, 0xec);
+0x80e84d14, 0xa7dd, 0x4b5f, 0xb5, 0xbd, 0x51, 0xbc, 0xd2, 0x1e, 0xaa, 0x49);
+
+// {e78a151c-e2fc-44b4-8062-f9949a8f691b}
+DEFINE_GUID(ICMPV6_RA_FILTERING_SUBLAYER, 
+0xe78a151c, 0xe2fc, 0x44b4, 0x80, 0x62, 0xf9, 0x94, 0x9a, 0x8f, 0x69, 0x1b);
 
 int main(int argc, char **args) {
 	NTSTATUS status;
@@ -25,6 +30,8 @@ int main(int argc, char **args) {
 	RtlZeroMemory(&bootTimeFilter, sizeof(FWPM_FILTER0));
 	RtlZeroMemory(&persistentFilter, sizeof(FWPM_FILTER0));
 	RtlZeroMemory(&fwpFilterSubLayer, sizeof(FWPM_SUBLAYER0));
+	
+	/*
     rpcStatus = UuidCreate(&fwpFilterSubLayer.subLayerKey);
           
     if (RPC_S_OK != rpcStatus)
@@ -40,6 +47,8 @@ int main(int argc, char **args) {
     fwpFilterSubLayer.flags = FWPM_SUBLAYER_FLAG_PERSISTENT;
     fwpFilterSubLayer.weight = 0x100;
 	
+	*/
+	
 	status = FwpmEngineOpen0(
 		NULL, 
 		RPC_C_AUTHN_WINNT, 
@@ -50,7 +59,7 @@ int main(int argc, char **args) {
 	if (status == ERROR_SUCCESS) {
 		printf("Engine open successful.\n");
 	}
-	
+	/*
 	status = FwpmSubLayerAdd0(EngineHandle, &fwpFilterSubLayer, NULL);
 
 	if (status != ERROR_SUCCESS)
@@ -58,6 +67,7 @@ int main(int argc, char **args) {
 		printf("FwpmSubLayerAdd0 failed (%02x).\n", status);
 		return;
 	}
+	*/
 
 	mCallout.calloutKey = SEND_CALLOUT_DRIVER;
 	mCallout.displayData.name = L"ICMPv6 Router Advertisment callout";
@@ -95,7 +105,7 @@ int main(int argc, char **args) {
 	bootTimeFilter.action.type = FWP_ACTION_CALLOUT_UNKNOWN;
 	bootTimeFilter.action.calloutKey = SEND_CALLOUT_DRIVER;
 	//bootTimeFilter.subLayerKey = FWPM_SUBLAYER_UNIVERSAL;
-	bootTimeFilter.subLayerKey = fwpFilterSubLayer.subLayerKey;
+	bootTimeFilter.subLayerKey = ICMPV6_RA_FILTERING_SUBLAYER;
 	bootTimeFilter.weight.type = FWP_EMPTY; // auto-weight.
 	bootTimeFilter.displayData.name = L"ICMPv6 Router Advertisment inspection";
 	bootTimeFilter.displayData.description = L"Boot-time callout filter inspecting all ICMPv6 Router Advertisment";
@@ -125,7 +135,7 @@ int main(int argc, char **args) {
 	persistentFilter.action.type = FWP_ACTION_CALLOUT_UNKNOWN;
 	persistentFilter.action.calloutKey = SEND_CALLOUT_DRIVER;
 	//persistentFilter.subLayerKey = FWPM_SUBLAYER_UNIVERSAL;
-	persistentFilter.subLayerKey = fwpFilterSubLayer.subLayerKey;
+	persistentFilter.subLayerKey = ICMPV6_RA_FILTERING_SUBLAYER;
 	persistentFilter.weight.type = FWP_EMPTY; // auto-weight.
 	persistentFilter.displayData.name = L"ICMPv6 Router Advertisment inspection";
 	persistentFilter.displayData.description = L"Persistent callout filter inspecting all ICMPv6 Router Advertisment";

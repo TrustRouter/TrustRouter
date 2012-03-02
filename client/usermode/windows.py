@@ -34,7 +34,7 @@ class WindowsAdapter(object):
                     100000,
                     None)
             except Exception:
-                print("Tried ReadFile, got nothing.")
+                #print("Tried ReadFile, got nothing.")
                 pass
 
             time.sleep(1)
@@ -42,29 +42,27 @@ class WindowsAdapter(object):
         return result_buffer
 
     def main(self):        
-        while True:
-            result_buffer = self.read_from_callout_until_success()
-            address_byte_array = bytearray(result_buffer[:self.POINTER_LENGTH])
-            interface_index = bytearray(result_buffer[self.POINTER_LENGTH:self.POINTER_LENGTH + self.UNSIGNED_INTEGER_LENGTH])
-            packet_byte_array = bytearray(result_buffer[(self.POINTER_LENGTH + self.UNSIGNED_INTEGER_LENGTH):])
+        result_buffer = self.read_from_callout_until_success()
+        address_byte_array = bytearray(result_buffer[:self.POINTER_LENGTH])
+        interface_index = bytearray(result_buffer[self.POINTER_LENGTH:self.POINTER_LENGTH + self.UNSIGNED_INTEGER_LENGTH])
+        packet_byte_array = bytearray(result_buffer[(self.POINTER_LENGTH + self.UNSIGNED_INTEGER_LENGTH):])
 
-            interface_index = struct.unpack("@I", interface_index)[0]
+        interface_index = struct.unpack("@I", interface_index)[0]
 
-            #for packet_byte in packet_byte_array:
-            #   print ("\\x%02x" % packet_byte, end="")
+        #for packet_byte in packet_byte_array:
+        #   print ("\\x%02x" % packet_byte, end="")
 
-            result = bytearray()
-            result.extend(address_byte_array)
+        result = bytearray()
+        result.extend(address_byte_array)
 
-            if self.shared.verify_router_advertisment(packet_byte_array, interface_index):                
-                action = self.ACTION_PERMIT
-            else:
-                action = self.ACTION_BLOCK
-                
-            result.extend(struct.pack("c", bytes(action, encoding="ascii")))
-            win32file.WriteFile(self.callout, result, None)
-
-
-if __name__ == "__main__":
-    adapter = WindowsAdapter()
-    adapter.main()
+        if self.shared.verify_router_advertisment(packet_byte_array, interface_index):                
+            action = self.ACTION_PERMIT
+        else:
+            action = self.ACTION_BLOCK
+            
+        result.extend(struct.pack("c", bytes(action, encoding="ascii")))
+        win32file.WriteFile(self.callout, result, None)
+		
+def run():
+	adapter = WindowsAdapter()
+	adapter.main()
