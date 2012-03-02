@@ -118,7 +118,6 @@ static STACK_OF(X509) *get_verified_chain(
 )
 {
     X509_STORE_CTX store_ctx;
-    X509_LOOKUP *lookup = NULL;
     X509 *cert = NULL;
     STACK_OF(X509) *untrusted = NULL;
     STACK_OF(X509) *CAs = NULL;
