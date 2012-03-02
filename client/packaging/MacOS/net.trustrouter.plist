@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Disabled</key>
+	<false/>
+	<key>Label</key>
+	<string>net.trustrouter</string>
+	<key>WorkingDirectory</key>
+	<string>/Library/TrustRouter</string>
+	<key>UserName</key>
+	<string>root</string>
+	<key>GroupName</key>
+	<string>wheel</string>
+	<key>Program</key>
+	<string>/Library/TrustRouter/start</string>
+	<key>RunAtLoad</key>
+	<true/>
+</dict>
+</plist>
