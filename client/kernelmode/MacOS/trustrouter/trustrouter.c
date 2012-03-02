@@ -13,6 +13,8 @@
 #include <sys/kern_control.h>
 #include <sys/malloc.h>
 
+#include <net/init.h>
+
 #include <netinet/in_systm.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -23,23 +25,22 @@
 
 #define BUNDLENAME "net.trustrouter.kext"
 
+#ifdef DEBUG
+#define DebugPrint(...) printf(__VA_ARGS__)
+#else
+#define DebugPrint(...)
+#endif
+
 static ipfilter_t installed_filter;
 static kern_ctl_ref ctlref;
 static u_int32_t ctrl_unit = 0;
 
-static lck_grp_t *lck_grp;
-static lck_mtx_t *packet_queue_mtx;
+static lck_grp_t *lck_grp = NULL;
+static lck_mtx_t *packet_queue_mtx = NULL;
 static struct packet_queue packet_queue;
 
 kern_return_t trustrouter_start(kmod_info_t * ki, void *d) {
-    printf("[TrustRouter] Kext is loading...\n");
-    
-    // init packet queue and associated lock
-    TAILQ_INIT(&packet_queue);
-    lck_grp = lck_grp_alloc_init(BUNDLENAME, LCK_GRP_ATTR_NULL);
-    if (lck_grp == NULL) goto error;
-    packet_queue_mtx = lck_mtx_alloc_init(lck_grp, LCK_ATTR_NULL);
-    if (packet_queue_mtx == NULL) goto error;
+    DebugPrint("[TrustRouter] Kext is loading...\n");
     
     // init kext control
     struct kern_ctl_reg userctl;
@@ -51,15 +52,19 @@ kern_return_t trustrouter_start(kmod_info_t * ki, void *d) {
     userctl.ctl_disconnect = &ctl_disconnect_fn;
     if (ctl_register(&userctl, &ctlref) != 0) goto error;
     
-    // install filter
-    struct ipf_filter filter;
-    bzero(&filter, sizeof(filter));
-    filter.cookie = (void*)0xdeadbeef;
-    filter.name = "TrustRouter filter";
-    filter.ipf_input = &input_fn;
-    if (ipf_addv6(&filter, &installed_filter) != 0) goto error;
+    // init packet queue and associated lock
+    TAILQ_INIT(&packet_queue);
+    lck_grp = lck_grp_alloc_init(BUNDLENAME, LCK_GRP_ATTR_NULL);
+    if (lck_grp == NULL) goto error;
+    packet_queue_mtx = lck_mtx_alloc_init(lck_grp, LCK_ATTR_NULL);
+    if (packet_queue_mtx == NULL) goto error;
     
-    printf("[TrustRouter] Kext is active.\n");
+    int ret = net_init_add(&install_filter);
+    if (ret == EALREADY) {
+        install_filter();
+    } else if (ret != 0) goto error;
+    
+    DebugPrint("[TrustRouter] Finished loading Kext.\n");
     return KERN_SUCCESS;
     
 error:
@@ -67,12 +72,23 @@ error:
     if (lck_grp != NULL) lck_grp_free(lck_grp);
     ctl_deregister(ctlref); // ok to call with invalid ctlref
     
-    printf("[TrustRouter] Loading Kext failed.\n");
+    printf("[TrustRouter] Failed to load kext.\n");
     return KERN_FAILURE;
 }
 
+static void install_filter() {
+    struct ipf_filter filter;
+    bzero(&filter, sizeof(filter));
+    filter.cookie = (void*)0xdeadbeef;
+    filter.name = "TrustRouter filter";
+    filter.ipf_input = &input_fn;
+    if (ipf_addv6(&filter, &installed_filter) != 0) {
+        printf("[TrustRouter] Failed to load kext.\n");
+    }
+}
+
 kern_return_t trustrouter_stop(kmod_info_t *ki, void *d) {
-    printf("[TrustRouter] Unloadeding kext...\n");
+    DebugPrint("[TrustRouter] Unloadeding kext...\n");
     
     if (ctl_deregister(ctlref) == EBUSY) return KERN_FAILURE;
     if (ipf_remove(installed_filter) != 0) return KERN_FAILURE;
@@ -91,7 +107,7 @@ kern_return_t trustrouter_stop(kmod_info_t *ki, void *d) {
     lck_mtx_free(packet_queue_mtx, lck_grp);
     lck_grp_free(lck_grp);
 
-    printf("[TrustRouter] Kext unloaded.\n");
+    DebugPrint("[TrustRouter] Kext unloaded.\n");
     return KERN_SUCCESS;
 }
 
@@ -109,7 +125,7 @@ static errno_t input_fn(void *cookie, mbuf_t *data, int offset, u_int8_t protoco
         return ACCEPT;
     }
     
-    printf("[TrustRouter] Router Advertisment! Yeah...\n");
+    DebugPrint("[TrustRouter] Router Advertisment! Yeah...\n");
     
     struct pktQueueItem *item = _MALLOC(sizeof(struct pktQueueItem), M_TEMP, M_WAITOK);
     item->packet = _MALLOC(sizeof(mbuf_t), M_TEMP, M_WAITOK);
@@ -124,34 +140,37 @@ static errno_t input_fn(void *cookie, mbuf_t *data, int offset, u_int8_t protoco
     TAILQ_INSERT_TAIL(&packet_queue, item, entries);
     lck_mtx_unlock(packet_queue_mtx);
     
+    send_to_userspace(item);    
+    
+    return REJECT;
+}
+
+static void send_to_userspace(struct pktQueueItem *item) {
     void *packet_id = item->packet;
     mbuf_t usermode_mbuf;
-    
     // Send packet id followed by packet
-    if (mbuf_dup(*data, MBUF_WAITOK, &usermode_mbuf) != 0 ||
-        ctl_enqueuedata(ctlref, ctrl_unit, &packet_id, sizeof(packet_id), 0) != 0 ||
-        ctl_enqueuembuf(ctlref, ctrl_unit, usermode_mbuf, 0) != 0) {
-        
-        printf("[TrustRouter] Could not send to userspace.\n");
-        
-        lck_mtx_lock(packet_queue_mtx);
-        TAILQ_REMOVE(&packet_queue, item, entries);
-        lck_mtx_unlock(packet_queue_mtx);
-        
-        mbuf_freem(*item->packet);
-        _FREE(item, M_TEMP);
-        
-        return REJECT;
+    if (mbuf_dup(*(item->packet), MBUF_WAITOK, &usermode_mbuf) != 0 ||
+            ctl_enqueuedata(ctlref, ctrl_unit, &packet_id, sizeof(packet_id), 0) != 0 ||
+            ctl_enqueuembuf(ctlref, ctrl_unit, usermode_mbuf, 0) != 0) {
+        printf("[TrustRouter] Could not send RA to userspace.\n");
+    } else {
+        DebugPrint("[TrustRouter] Sent RA to userspace.\n");
     }
-    
-    printf("[TrustRouter] Sent to userspace :-)\n");
-    return REJECT;
 }
 
 static errno_t ctl_connect_fn(kern_ctl_ref kctlref, struct sockaddr_ctl *sac, void **unitinfo) {
     if (ctrl_unit == 0) {
         ctrl_unit = sac->sc_unit;
-        printf("[TrustRouter] Connected.\n");
+        DebugPrint("[TrustRouter] Connected.\n");
+        
+        struct pktQueueItem *item;
+        
+        lck_mtx_lock(packet_queue_mtx);
+        TAILQ_FOREACH(item, &packet_queue, entries) {
+            send_to_userspace(item);
+        }
+        lck_mtx_unlock(packet_queue_mtx);
+        
         return 0;
     }
     return -1;
@@ -160,7 +179,7 @@ static errno_t ctl_connect_fn(kern_ctl_ref kctlref, struct sockaddr_ctl *sac, vo
 static errno_t ctl_disconnect_fn(kern_ctl_ref kctlref, u_int32_t unit, void *unitinfo) {
     if (unit == ctrl_unit) {
         ctrl_unit = 0;
-        printf("[TrustRouter] Disconnected.\n");
+        DebugPrint("[TrustRouter] Disconnected.\n");
         return 0;
     }
     return -1;
@@ -185,20 +204,20 @@ static errno_t ctl_send_fn(kern_ctl_ref kctlref, u_int32_t unit, void *unitinfo,
     lck_mtx_unlock(packet_queue_mtx);
     
     if (item == NULL) {
-        printf("[TrustRouter] Unkown packet id.\n");
+        DebugPrint("[TrustRouter] Unkown packet id.\n");
         return -1;
     }
     
     if (result.action == ACCEPT) {
-        printf("[TrustRouter] Accepted.\n");
+        DebugPrint("[TrustRouter] Accepted.\n");
         if (ipf_inject_input(*(item->packet), installed_filter) != 0) {
             mbuf_freem(*item->packet);
-            printf("[TrustRouter] Cannot re-inject packet.\n");
+            DebugPrint("[TrustRouter] Cannot re-inject packet.\n");
         } else {
-            printf("[TrustRouter] Injected.\n");
+            DebugPrint("[TrustRouter] Injected.\n");
         }
     } else {
-        printf("[TrustRouter] Rejected.\n");
+        DebugPrint("[TrustRouter] Rejected.\n");
     }
     
     _FREE(item, M_TEMP);

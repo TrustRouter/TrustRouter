@@ -31,5 +31,25 @@
 		<key>com.apple.kpi.libkern</key>
 		<string>11.2</string>
 	</dict>
+	<key>OSBundleRequired</key>
+	<string>Root</string>
+	<key>IOKitPersonalities</key>
+	<dict>
+		<key>TrustRouter</key>
+		<dict>
+			<key>CFBundleIdentifier</key>
+			<string>net.trustrouter.kext.${PRODUCT_NAME:rfc1034identifier}</string>
+			<key>IOClass</key>
+			<string>IOService</string>
+			<key>IOKitDebug</key>
+			<integer>0</integer>
+			<key>IOMatchCategory</key>
+			<string>net.trustrouter.kext.trustrouter</string>
+			<key>IOProviderClass</key>
+			<string>IOResources</string>
+			<key>IOResourceMatch</key>
+			<string>IOBSD</string>
+		</dict>
+	</dict>
 </dict>
 </plist>
