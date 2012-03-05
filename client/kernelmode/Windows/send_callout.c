@@ -270,8 +270,12 @@ VOID NTAPI ClassifyFn1(
 	//PACKET_LIST_ENTRY *packetListEntry = {0};
 
 	//ExAllocatePoolWithTag(PagedPool, sizeof(PACKET_LIST_ENTRY), "denS");
-	
+	DbgPrint("================== ClassifyFn ============================\n");
 	DbgPrint("Got packet for classification.");
+    DbgPrint("inMetaValues pointer %p\n", inMetaValues);
+    DbgPrint("completionHandle %p\n",  inMetaValues->completionHandle);
+    
+    //printDataFromNetBufferList(netBufferList);
 	
 	// Get a handle for injection. Assumption: We only want to inject IPv6 packets.
 	status = FwpsInjectionHandleCreate0(
@@ -293,6 +297,7 @@ VOID NTAPI ClassifyFn1(
 						injectionHandle,
 						netBufferList,
 						NULL);
+                     
 						
 	if (injectionState == FWPS_PACKET_INJECTED_BY_SELF 
 		|| injectionState == FWPS_PACKET_PREVIOUSLY_INJECTED_BY_SELF
@@ -311,12 +316,14 @@ VOID NTAPI ClassifyFn1(
 	// classifyFn1 using NdisAdvanceNetBufferDataStart !
 	netBuffer = NET_BUFFER_LIST_FIRST_NB(netBufferList);
 	
+    
 	NdisRetreatNetBufferDataStart(netBuffer,
 								  inMetaValues->ipHeaderSize + inMetaValues->transportHeaderSize,
 								  0,
 								  NULL);
 	
-	DbgPrint("Original Net Buffer List:\n");
+    
+    //DbgPrint("Original Net Buffer List after Retreating to IP Header:\n");
 	//printDataFromNetBufferList(netBufferList);
 	
 	// Make a shallow copy of the net buffer list.
@@ -331,22 +338,31 @@ VOID NTAPI ClassifyFn1(
 		// clonedNetBufferList,
 		// FALSE);
 		
-	DbgPrint("AAAAAAAA Cloned Net Buffer List:\n");
+	//DbgPrint("Cloned Net Buffer List after Retreating to IP Header:\n");
 	//printDataFromNetBufferList(clonedNetBufferList);
 	
-	// if (packetByteCount >= 97) {
-		// DbgPrint("Packet Data from Net Buffer (Prefix):");	
-		// for (i = 80; i < 97; i++) {
-			// DbgPrint("%0x", packet[i]);
-		// }
-	// }
+    /* 
+    if (packetByteCount >= 97) {
+        DbgPrint("Packet Data from Net Buffer (Prefix):");	
+		for (i = 80; i < 97; i++) {
+            DbgPrint("%0x", packet[i]);
+		}
+	}
+    */
+    
 	
 	NdisAdvanceNetBufferDataStart(netBuffer,
 								  inMetaValues->ipHeaderSize + inMetaValues->transportHeaderSize,
 								  0,
-								  NULL);
-					 
-	// We want to inspect the packet further in user mode, so absorb and block
+                                  NULL);
+    /*                          
+    DbgPrint("Original Net Buffer List after Advancing to Transport Header:\n");
+	printDataFromNetBufferList(netBufferList);
+    DbgPrint("Cloned Net Buffer List after Advancing to Transport Header:\n");
+	printDataFromNetBufferList(clonedNetBufferList);
+	*/
+    
+    // We want to inspect the packet further in user mode, so absorb and block
 	// the packet for the moment. If we want allow it, we have to reinject it later.
 	classifyOut->actionType = FWP_ACTION_BLOCK;
 	classifyOut->flags = FWPS_CLASSIFY_OUT_FLAG_ABSORB;
@@ -365,23 +381,28 @@ VOID NTAPI ClassifyFn1(
 	DbgPrint("InterfaceIndex is %d\n", reinjectInfo->interfaceIndex);
 	reinjectInfo->subInterfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_SUB_INTERFACE_INDEX].value.uint32;
 	reinjectInfo->hasBeenRead = FALSE;
-	
+    	
 	if (FWPS_IS_METADATA_FIELD_PRESENT(inMetaValues, FWPS_METADATA_FIELD_COMPARTMENT_ID)) {
 		reinjectInfo->compartmentId = inMetaValues->compartmentId;
 	} else {
 		reinjectInfo->compartmentId = UNSPECIFIED_COMPARTMENT_ID;
 	}
 	
-	ExAcquireFastMutex(&gListMutex);
-	
-	InsertTailList(&gReinjectListHead, &(reinjectInfo->listEntry));
-	
+	ExAcquireFastMutex(&gListMutex);	
+	InsertTailList(&gReinjectListHead, &(reinjectInfo->listEntry));	
 	ExReleaseFastMutex(&gListMutex);
 	
-	status = FwpsPendOperation0(
+    if (FWPS_IS_METADATA_FIELD_PRESENT(inMetaValues, FWPS_METADATA_FIELD_COMPLETION_HANDLE)) {
+        DbgPrint("!!!! CompletionHandle is present -> Pending Operation\n");
+        FwpsPendOperation0(
 			inMetaValues->completionHandle,
 			&(reinjectInfo->aleCompletionContext));	
+    } else {
+        DbgPrint("???? CompletionHandle is NULL -> Don't Pend!\n");
+        reinjectInfo->aleCompletionContext = NULL;
+    }
 	
+    /*
 	if (status == STATUS_FWP_CANNOT_PEND) {
 		DbgPrint("Cannot pend Classify.\n");
 	} else if (status == STATUS_SUCCESS) {
@@ -393,6 +414,7 @@ VOID NTAPI ClassifyFn1(
 	} else {
 		DbgPrint("Error when trying to pend packet: %0x\n", status);
 	}
+    */
 			
 	if (!NT_SUCCESS(status)) {
 		classifyOut->actionType = FWP_ACTION_BLOCK;
@@ -402,10 +424,8 @@ VOID NTAPI ClassifyFn1(
 		}
 
 		{
-		  	ExAcquireFastMutex(&gListMutex);
-	
-			RemoveTailList(&gReinjectListHead);
-			
+		  	ExAcquireFastMutex(&gListMutex);	
+			RemoveTailList(&gReinjectListHead);			
 			ExReleaseFastMutex(&gListMutex);
 		}
 	}	
@@ -457,12 +477,18 @@ void completeClassificationOfPacket(
 
 	case 'B':
 		DbgPrint("Packet classified as 'Block'.\n");
-		FwpsCompleteOperation0(pReinjectInfo->aleCompletionContext, NULL);
+        if (pReinjectInfo->aleCompletionContext != NULL) {
+            // Could be NULL when completionHandle was NULL during classifyFn
+            FwpsCompleteOperation0(pReinjectInfo->aleCompletionContext, NULL);
+        }
 		break;	
 		
 	default:
 		DbgPrint("Packet classified as 'Block' per default.\n");
-		FwpsCompleteOperation0(pReinjectInfo->aleCompletionContext, NULL);
+        if (pReinjectInfo->aleCompletionContext != NULL) {
+            // Could be NULL when completionHandle was NULL during classifyFn
+            FwpsCompleteOperation0(pReinjectInfo->aleCompletionContext, NULL);
+        }
 		break;	
 		
 	}
@@ -475,11 +501,13 @@ VOID completeOperationAndReinjectPacket(ICMP_V6_REINJECT_INFO *pReinjectInfo) {
 	
 	NTSTATUS status = NULL;
 	
-	DbgPrint("Injecting Net Buffer List:\n");
-	printDataFromNetBufferList(pReinjectInfo->netBufferList);
-
-	FwpsCompleteOperation0(pReinjectInfo->aleCompletionContext, pReinjectInfo->netBufferList);
-	
+	DbgPrint("------ Reinjection Function ---------:\n");
+	//printDataFromNetBufferList(pReinjectInfo->netBufferList);    
+     
+    if (pReinjectInfo->aleCompletionContext != NULL) {
+        // Could be NULL when completionHandle was NULL during classifyFn     
+        FwpsCompleteOperation0(pReinjectInfo->aleCompletionContext, pReinjectInfo->netBufferList);
+	}
 	 status = FwpsInjectTransportReceiveAsync0(
 			pReinjectInfo->injectionHandle,
 			NULL,
@@ -516,10 +544,8 @@ VOID NTAPI completionFn(
 {
 	ICMP_V6_REINJECT_INFO *pReinjectInfo = (ICMP_V6_REINJECT_INFO *) context;
 	
-	ExAcquireFastMutex(&gListMutex);
-	
-	RemoveEntryList(&(pReinjectInfo->listEntry));
-	
+	ExAcquireFastMutex(&gListMutex);	
+	RemoveEntryList(&(pReinjectInfo->listEntry));	
 	ExReleaseFastMutex(&gListMutex);
 
 	ExFreePoolWithTag(pReinjectInfo, "denS");
