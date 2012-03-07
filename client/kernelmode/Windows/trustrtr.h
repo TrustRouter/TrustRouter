@@ -54,7 +54,9 @@ VOID completeClassificationOfPacket(
 VOID completeOperationAndReinjectPacket(
 	ICMP_V6_REINJECT_INFO *pReinjectInfo);
 	
-void printDataFromNetBufferList(NET_BUFFER_LIST *netBufferList);
+BOOLEAN ICMPPaketIsRA(NET_BUFFER_LIST *netBufferList);    
+    
+VOID printDataFromNetBufferList(NET_BUFFER_LIST *netBufferList);
 	
 NTSTATUS SendCalloutCreate(PDEVICE_OBJECT pDeviceObject, PIRP Irp);
 NTSTATUS SendCalloutWrite(PDEVICE_OBJECT pDeviceObject, PIRP Irp);

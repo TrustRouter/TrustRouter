@@ -1,4 +1,4 @@
-#include "send_callout.h"
+#include "trustrtr.h"
 
 // {80E84D14-A7DD-4b5f-B5BD-51BCD21EAA49}
 DEFINE_GUID(SEND_CALLOUT_DRIVER, 
@@ -19,8 +19,8 @@ NTSTATUS DriverEntry(
 	NTSTATUS status;
 	UNICODE_STRING usDriverName, usDosDeviceName;
 	
-	RtlInitUnicodeString(&usDriverName, L"\\Device\\SendCallout");
-	RtlInitUnicodeString(&usDosDeviceName, L"\\DosDevices\\SendCallout");
+	RtlInitUnicodeString(&usDriverName, L"\\Device\\trustrtr");
+	RtlInitUnicodeString(&usDosDeviceName, L"\\DosDevices\\trustrtr");
 	
 	symLinkName = usDosDeviceName;	
 	IoCreateSymbolicLink(&symLinkName, &usDriverName);
@@ -77,7 +77,7 @@ VOID InitializeFilter()
 		&CalloutId);
 	
 	if (status == STATUS_SUCCESS) {
-		DbgPrint("-+-+-+- Callout register was successful.\n");
+		DbgPrint("-+-+-+- trustrtr: register was successful.\n");
 	} else if (status == STATUS_FWP_ALREADY_EXISTS) {
 		DbgPrint("-+-+-+- Callout could not be registered.\n");
 	} else {
@@ -265,16 +265,18 @@ VOID NTAPI ClassifyFn1(
 	NET_BUFFER_LIST_POOL_PARAMETERS poolParameters;
 	NET_BUFFER_LIST *clonedNetBufferList;
 	ICMP_V6_REINJECT_INFO *reinjectInfo;
+    BOOLEAN isRA = FALSE;
 	int i;
 	
 	//PACKET_LIST_ENTRY *packetListEntry = {0};
 
 	//ExAllocatePoolWithTag(PagedPool, sizeof(PACKET_LIST_ENTRY), "denS");
 	DbgPrint("================== ClassifyFn ============================\n");
-	DbgPrint("Got packet for classification.");
-    DbgPrint("inMetaValues pointer %p\n", inMetaValues);
-    DbgPrint("completionHandle %p\n",  inMetaValues->completionHandle);
+	DbgPrint("Packet from Filter with ID %d\n", filter->filterId);
+    //DbgPrint("inMetaValues pointer %p\n", inMetaValues);
+    //DbgPrint("completionHandle %p\n",  inMetaValues->completionHandle);
     
+    //DbgPrint("Original Packet: \n");
     //printDataFromNetBufferList(netBufferList);
 	
 	// Get a handle for injection. Assumption: We only want to inject IPv6 packets.
@@ -308,132 +310,118 @@ VOID NTAPI ClassifyFn1(
 	} else {
 		DbgPrint("Packet Injection State: %0x\n", injectionState);
 	}
-
-	
-	// At this layer, we are at the beginning of the ICMP payload.
-	// We want to go back to the start of the IP-header.
-	// NOTE: This adjustment has to be undone before returning from
-	// classifyFn1 using NdisAdvanceNetBufferDataStart !
-	netBuffer = NET_BUFFER_LIST_FIRST_NB(netBufferList);
-	
     
-	NdisRetreatNetBufferDataStart(netBuffer,
-								  inMetaValues->ipHeaderSize + inMetaValues->transportHeaderSize,
-								  0,
-								  NULL);
-	
+    netBuffer = NET_BUFFER_LIST_FIRST_NB(netBufferList);
     
-    //DbgPrint("Original Net Buffer List after Retreating to IP Header:\n");
-	//printDataFromNetBufferList(netBufferList);
-	
-	// Make a shallow copy of the net buffer list.
-	FwpsAllocateCloneNetBufferList0(
-		netBufferList,
-		NULL,
-		NULL,
-		0,
-		&clonedNetBufferList);
-		
-	// FwpsReferenceNetBufferList0(
-		// clonedNetBufferList,
-		// FALSE);
-		
-	//DbgPrint("Cloned Net Buffer List after Retreating to IP Header:\n");
-	//printDataFromNetBufferList(clonedNetBufferList);
-	
-    /* 
-    if (packetByteCount >= 97) {
-        DbgPrint("Packet Data from Net Buffer (Prefix):");	
-		for (i = 80; i < 97; i++) {
-            DbgPrint("%0x", packet[i]);
-		}
-	}
-    */
-    
-	
-	NdisAdvanceNetBufferDataStart(netBuffer,
-								  inMetaValues->ipHeaderSize + inMetaValues->transportHeaderSize,
-								  0,
+    /*
+        To be able to insert the packet into the TCP/IP stack later,
+        we need to go back to the start of the IP-header.
+        NOTE: This adjustment has to be undone before returning from
+        classifyFn1 using NdisAdvanceNetBufferDataStart !
+    */	    
+    NdisRetreatNetBufferDataStart(netBuffer,
+                                  inMetaValues->ipHeaderSize + inMetaValues->transportHeaderSize,
+                                  0,
                                   NULL);
+    
+    
+    // Make a copy of the net buffer list.
+    FwpsAllocateCloneNetBufferList0(
+        netBufferList,
+        NULL,
+        NULL,
+        0,
+        &clonedNetBufferList);
+        
+    //DbgPrint("Cloned Net Buffer List after Retreating to IP Header:\n");
+    //printDataFromNetBufferList(clonedNetBufferList);
+    
+    NdisAdvanceNetBufferDataStart(netBuffer,
+                                  inMetaValues->ipHeaderSize + inMetaValues->transportHeaderSize,
+                                  0,
+                                  NULL);                             
+       
     /*                          
     DbgPrint("Original Net Buffer List after Advancing to Transport Header:\n");
-	printDataFromNetBufferList(netBufferList);
+    printDataFromNetBufferList(netBufferList);
     DbgPrint("Cloned Net Buffer List after Advancing to Transport Header:\n");
-	printDataFromNetBufferList(clonedNetBufferList);
-	*/
+    printDataFromNetBufferList(clonedNetBufferList);
+    */
     
     // We want to inspect the packet further in user mode, so absorb and block
-	// the packet for the moment. If we want allow it, we have to reinject it later.
-	classifyOut->actionType = FWP_ACTION_BLOCK;
-	classifyOut->flags = FWPS_CLASSIFY_OUT_FLAG_ABSORB;
-	
-	// Allocate and populate a ICMP_V6_REINJECT_INFO structure that holds all information
-	// necessary to complete the operation and reinject the packet later if necessary.
-	// If the decision is made in user mode to permit the packet, this information
-	// will be read in completeOperationAndReinjectPacket().
-	
-	reinjectInfo = ExAllocatePoolWithTag(PagedPool, sizeof(ICMP_V6_REINJECT_INFO), "denS");
-	
-	reinjectInfo->netBufferList = clonedNetBufferList;
-	reinjectInfo->injectionHandle = injectionHandle;
-	reinjectInfo->af = AF_INET6;
-	reinjectInfo->interfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_INTERFACE_INDEX].value.uint32;
-	DbgPrint("InterfaceIndex is %d\n", reinjectInfo->interfaceIndex);
-	reinjectInfo->subInterfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_ALE_AUTH_RECV_ACCEPT_V6_SUB_INTERFACE_INDEX].value.uint32;
-	reinjectInfo->hasBeenRead = FALSE;
-    	
-	if (FWPS_IS_METADATA_FIELD_PRESENT(inMetaValues, FWPS_METADATA_FIELD_COMPARTMENT_ID)) {
-		reinjectInfo->compartmentId = inMetaValues->compartmentId;
-	} else {
-		reinjectInfo->compartmentId = UNSPECIFIED_COMPARTMENT_ID;
-	}
-	
-	ExAcquireFastMutex(&gListMutex);	
-	InsertTailList(&gReinjectListHead, &(reinjectInfo->listEntry));	
-	ExReleaseFastMutex(&gListMutex);
-	
+    // the packet for the moment. If we want allow it, we have to reinject it later.
+    classifyOut->actionType = FWP_ACTION_BLOCK;
+    classifyOut->flags = FWPS_CLASSIFY_OUT_FLAG_ABSORB;
+    
+    // Allocate and populate a ICMP_V6_REINJECT_INFO structure that holds all information
+    // necessary to complete the operation and reinject the packet later if necessary.
+    // If the decision is made in user mode to permit the packet, this information
+    // will be read in completeOperationAndReinjectPacket().
+    
+    reinjectInfo = ExAllocatePoolWithTag(PagedPool, sizeof(ICMP_V6_REINJECT_INFO), "denS");
+    
+    reinjectInfo->netBufferList = clonedNetBufferList;
+    reinjectInfo->injectionHandle = injectionHandle;
+    reinjectInfo->af = AF_INET6;
+    reinjectInfo->interfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_INBOUND_TRANSPORT_V6_INTERFACE_INDEX].value.uint32;
+    //DbgPrint("InterfaceIndex is %d\n", reinjectInfo->interfaceIndex);
+    reinjectInfo->subInterfaceIndex = inFixedValues->incomingValue[FWPS_FIELD_INBOUND_TRANSPORT_V6_SUB_INTERFACE_INDEX].value.uint32;
+    reinjectInfo->hasBeenRead = FALSE;
+        
+    if (FWPS_IS_METADATA_FIELD_PRESENT(inMetaValues, FWPS_METADATA_FIELD_COMPARTMENT_ID)) {
+        reinjectInfo->compartmentId = inMetaValues->compartmentId;
+    } else {
+        reinjectInfo->compartmentId = UNSPECIFIED_COMPARTMENT_ID;
+    }
+    
+    ExAcquireFastMutex(&gListMutex);	
+    InsertTailList(&gReinjectListHead, &(reinjectInfo->listEntry));	
+    ExReleaseFastMutex(&gListMutex);
+   
+    /*
     if (FWPS_IS_METADATA_FIELD_PRESENT(inMetaValues, FWPS_METADATA_FIELD_COMPLETION_HANDLE)) {
         DbgPrint("!!!! CompletionHandle is present -> Pending Operation\n");
         FwpsPendOperation0(
-			inMetaValues->completionHandle,
-			&(reinjectInfo->aleCompletionContext));	
+            inMetaValues->completionHandle,
+            &(reinjectInfo->aleCompletionContext));	
     } else {
         DbgPrint("???? CompletionHandle is NULL -> Don't Pend!\n");
-        reinjectInfo->aleCompletionContext = NULL;
-    }
-	
-    /*
-	if (status == STATUS_FWP_CANNOT_PEND) {
-		DbgPrint("Cannot pend Classify.\n");
-	} else if (status == STATUS_SUCCESS) {
-		DbgPrint("Packet set to 'pending' successfully.\n");
-	} else if (status == STATUS_FWP_NULL_POINTER) {
-		DbgPrint("Invalid parameters for pending. CompletionHandle is: %0x\n", inMetaValues->completionHandle);
-	} else if (status == STATUS_FWP_TCPIP_NOT_READY) {
-		DbgPrint("TCPIP stack is not ready.\n");
-	} else {
-		DbgPrint("Error when trying to pend packet: %0x\n", status);
-	}
     */
-			
-	if (!NT_SUCCESS(status)) {
-		classifyOut->actionType = FWP_ACTION_BLOCK;
-		classifyOut->rights &= ~FWPS_RIGHT_ACTION_WRITE;
-		if (clonedNetBufferList != NULL) {
-			FwpsFreeCloneNetBufferList0(clonedNetBufferList, 0);
-		}
+    reinjectInfo->aleCompletionContext = NULL;
+    
+    /*
+    if (status == STATUS_FWP_CANNOT_PEND) {
+        DbgPrint("Cannot pend Classify.\n");
+    } else if (status == STATUS_SUCCESS) {
+        DbgPrint("Packet set to 'pending' successfully.\n");
+    } else if (status == STATUS_FWP_NULL_POINTER) {
+        DbgPrint("Invalid parameters for pending. CompletionHandle is: %0x\n", inMetaValues->completionHandle);
+    } else if (status == STATUS_FWP_TCPIP_NOT_READY) {
+        DbgPrint("TCPIP stack is not ready.\n");
+    } else {
+        DbgPrint("Error when trying to pend packet: %0x\n", status);
+    }
+    */
+        
+    /*    
+        if (!NT_SUCCESS(status)) {
+            classifyOut->actionType = FWP_ACTION_BLOCK;
+            classifyOut->rights &= ~FWPS_RIGHT_ACTION_WRITE;
+            if (clonedNetBufferList != NULL) {
+                FwpsFreeCloneNetBufferList0(clonedNetBufferList, 0);
+            }
 
-		{
-		  	ExAcquireFastMutex(&gListMutex);	
-			RemoveTailList(&gReinjectListHead);			
-			ExReleaseFastMutex(&gListMutex);
-		}
-	}	
-
-	return;
+            {
+                ExAcquireFastMutex(&gListMutex);	
+                RemoveTailList(&gReinjectListHead);			
+                ExReleaseFastMutex(&gListMutex);
+            }
+        }	
+    */
+    return;
 }
 
-void printDataFromNetBufferList(NET_BUFFER_LIST *netBufferList) {
+VOID printDataFromNetBufferList(NET_BUFFER_LIST *netBufferList) {
 	NET_BUFFER *netBuffer;
 	PVOID packetBuf, Ppacket = NULL;
 	PUCHAR printPacket;
@@ -463,7 +451,7 @@ void printDataFromNetBufferList(NET_BUFFER_LIST *netBufferList) {
 	DbgPrint("\n");
 }
 
-void completeClassificationOfPacket(
+VOID completeClassificationOfPacket(
 	ICMP_V6_REINJECT_INFO *pReinjectInfo,
 	UCHAR action) 
 {	
