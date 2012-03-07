@@ -5,7 +5,7 @@ import time
 from trustrouter.core import RAVerifier
 
 class WindowsAdapter(object):
-    CALLOUT_DRIVER_NAME = "\\\\.\\SendCallout"
+    CALLOUT_DRIVER_NAME = "\\\\.\\trustrtr"
     POINTER_LENGTH = struct.calcsize("P")
     UNSIGNED_INTEGER_LENGTH = struct.calcsize("I")
     ACTION_BLOCK = "B"
