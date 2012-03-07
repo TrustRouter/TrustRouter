@@ -63,7 +63,8 @@ class WindowsAdapter(object):
             
         result.extend(struct.pack("c", bytes(action, encoding="ascii")))
         win32file.WriteFile(self.callout, result, None)
-		
+        
 def run(log_fn):
-	adapter = WindowsAdapter(log_fn=log_fn)
-	adapter.main()
+    adapter = WindowsAdapter(log_fn=log_fn)
+    while True:
+        adapter.main()
