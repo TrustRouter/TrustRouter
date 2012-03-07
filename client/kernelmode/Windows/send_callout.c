@@ -69,7 +69,7 @@ VOID InitializeFilter()
 	sCallout.flags = 0;
 	sCallout.classifyFn = ClassifyFn1;
 	sCallout.notifyFn = NotifyFn1;
-	sCallout.flowDeleteFn = FlowDeleteFn;
+	sCallout.flowDeleteFn = NULL;
 	
 	status = FwpsCalloutRegister1(
 		pDeviceObject,
@@ -586,14 +586,6 @@ NTSTATUS NTAPI NotifyFn1(
     IN const FWPS_FILTER1  *filter) 
 {
 	return STATUS_SUCCESS;	
-}
-
-VOID NTAPI FlowDeleteFn(
-    IN UINT16  layerId,
-    IN UINT32  calloutId,
-    IN UINT64  flowContext)
-{
-	
 }
 
 VOID DriverUnload(IN PDRIVER_OBJECT pDriverObject)

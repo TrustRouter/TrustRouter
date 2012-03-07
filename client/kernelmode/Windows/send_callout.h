@@ -39,11 +39,6 @@ NTSTATUS NTAPI NotifyFn1(
 	IN FWPS_CALLOUT_NOTIFY_TYPE notifyType,
     IN const GUID  *filterKey,
     IN const FWPS_FILTER1  *filter);
-
-VOID NTAPI FlowDeleteFn(
-    IN UINT16  layerId,
-    IN UINT32  calloutId,
-    IN UINT64  flowContext);
 		
 VOID NTAPI completionFn(
 	IN VOID *context,
