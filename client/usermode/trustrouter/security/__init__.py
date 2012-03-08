@@ -56,7 +56,7 @@ def _format_to_bytes(string):
         return string
     else:
         assert isinstance(string, str)
-        return bytes(string.encode(sys.stdin.encoding))
+        return bytes(string.encode("ascii"))
 
 def _ipv4_n_to_a(address):
     return "%u.%u.%u.%u" % tuple(address)
@@ -79,19 +79,17 @@ def _get_ipaddrblock_ext(prefix, prefix_length):
     return ext
 
 def _format_certs_der(certs_der):
-    certs_count = len(certs_der)
+    cert_count = len(certs_der)
     cert_length = 0
     certs_param = None
 
-    if certs_count == 0:
-        return (certs_count, cert_length, certs_param)
-    else:
+    if cert_count != 0:
         cert_length = len(max(certs_der, key=len))
         certs_param = b''
         for cert in certs_der:
             certs_param += cert
             certs_param += (cert_length - len(cert)) * b'\x00'
-        return (certs_count, cert_length, certs_param)
+    return {"cert_count": cert_count, "cert_length": cert_length, "certs": certs_param}
 
 # OpenSSL Return-Value  : bool
 #               0       : False
@@ -104,12 +102,12 @@ def verify_cert(CA_certs, untrusted_certs, cert):
     untrusted = _format_certs_der(untrusted_certs)
     valid = -1
     valid = _verify_cert(
-        CAs[0],
-        CAs[1],
-        CAs[2],
-        untrusted[0],
-        untrusted[1],
-        untrusted[2],    
+        CAs["cert_count"],
+        CAs["cert_length"],
+        CAs["certs"],
+        untrusted["cert_count"],
+        untrusted["cert_length"],
+        untrusted["certs"],    
         len(cert),
         cert
     )
@@ -123,12 +121,12 @@ def verify_prefix_with_cert(CA_certs, untrusted_certs, cert, prefix, prefix_leng
     untrusted = _format_certs_der(untrusted_certs)
     valid = -1
     valid = _verify_prefix_with_cert(
-        CAs[0],
-        CAs[1],
-        CAs[2],
-        untrusted[0],
-        untrusted[1],
-        untrusted[2],
+        CAs["cert_count"],
+        CAs["cert_length"],
+        CAs["certs"],
+        untrusted["cert_count"],
+        untrusted["cert_length"],
+        untrusted["certs"],
         len(cert),
         cert,
         _format_to_bytes(prefix_ext)
