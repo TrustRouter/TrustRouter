@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IFPkgDescriptionDeleteWarning</key>
+	<string></string>
+	<key>IFPkgDescriptionDescription</key>
+	<string>TrustRouter is an implementation of the Secure Neighbor Discovery Protocol (SEND, RFC 3971). Its focus is on securing router advertisements in IPv6 networks. Even though it is specified in the SEND RFC, TrustRouter does not implement CGAs and does not secure neighbor advertisements as of yet.</string>
+	<key>IFPkgDescriptionTitle</key>
+	<string>TrustRouter</string>
+	<key>IFPkgDescriptionVersion</key>
+	<string>1.0</string>
+</dict>
+</plist>

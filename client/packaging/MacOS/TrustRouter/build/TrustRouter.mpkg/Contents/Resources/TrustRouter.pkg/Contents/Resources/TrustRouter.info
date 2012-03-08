@@ -1,0 +1,17 @@
+Title TrustRouter
+Version 1.0
+Description TrustRouter is an implementation of the Secure Neighbor Discovery Protocol (SEND, RFC 3971). Its focus is on securing router advertisements in IPv6 networks. Even though it is specified in the SEND RFC, TrustRouter does not implement CGAs and does not secure neighbor advertisements as of yet.
+DefaultLocation /
+DeleteWarning 
+
+### Package Flags
+
+NeedsAuthorization YES
+Required YES
+Relocatable NO
+RequiresReboot YES
+UseUserMask NO
+OverwritePermissions NO
+AllowBackRev NO
+RootVolumeOnly YES
+OnlyUpdateInstalledLanguages NO

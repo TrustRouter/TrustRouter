@@ -1,0 +1,20 @@
+#
+# Human-readable string for this group of packages
+#
+Title	TrustRouter
+
+#
+# Version
+#
+Version	1.0
+
+#
+# MetaPackage Description
+#
+Description	TrustRouter is an implementation of the Secure Neighbor Discovery Protocol (SEND, RFC 3971). Its focus is on securing router advertisements in IPv6 networks. Even though it is specified in the SEND RFC, TrustRouter does not implement CGAs and does not secure neighbor advertisements as of yet.
+
+#
+# Where to search for packages. For a real release, this would
+# be relative to the .mpkg directory (probably "..")
+#
+PackageLocation	Contents/Resources
