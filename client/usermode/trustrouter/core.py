@@ -13,9 +13,9 @@ CGA_MESSAGE_TYPE_TAG = b"\x08\x6F\xCA\x5E\x10\xB2\x00\xC9\x9C\x8C\xE0\x01\x64\x2
 
 class RAVerifier(object):
 
-    def __init__(self, log_fn=print, config=None):
+    def __init__(self, log_fn=print, user_config=None):
         self.log = log_fn
-        self.config = self._handle_config(config, self.log)
+        self.config = config.Config(user_config, self.log)
         # add trust anchors that ship with TrustRouter
         self.config.trust_anchors.extend(certificates.trust_anchors)
 
@@ -36,8 +36,9 @@ class RAVerifier(object):
         prefix_option = prefix_options[0]
 
         if rsa_option is None:
-            self.log("Unsigned RA")
-            return self._accept_unsigned_ra(ra, prefix_option)
+            result = self._accept_unsigned_ra(ra, prefix_option)
+            self.log("Unsigned RA --> Accepted: %s" % result)
+            return result
 
         if rsa_option is not ra.payload.options[-1]:
             self.log("Found data after RSA option --> reject")
@@ -191,9 +192,9 @@ class RAVerifier(object):
 
 
     def _accept_unsigned_ra(self, ra, prefix_option):
-        if self.config.mode == MODE_ONLY_SEND:
+        if self.config.mode == config.MODE_ONLY_SEND:
             return False
-        prefix = (prefix_option[prefix], prefix_option[prefix_length])
+        prefix = (prefix_option["prefix"], prefix_option["prefix_length"])
         return (ra["source_addr"] not in self._secured_routers and 
                 prefix not in self._secured_prefixes)
 
@@ -201,6 +202,6 @@ class RAVerifier(object):
     def _add_to_secured_list(self, ra, prefix_option):
         if ra["source_addr"] not in self._secured_routers:
             self._secured_routers.append(ra["source_addr"])
-        prefix = (prefix_option[prefix], prefix_option[prefix_length])
+        prefix = (prefix_option["prefix"], prefix_option["prefix_length"])
         if prefix not in self._secured_prefixes:
             self._secured_prefixes.append(prefix)

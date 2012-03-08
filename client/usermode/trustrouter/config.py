@@ -20,7 +20,7 @@ class Config(object):
     def _mode(self, config, log):
         mode = getattr(config, "MODE", None)
         if mode in self.MODE_TRANSLATION:
-            return mode
+            return self.MODE_TRANSLATION[mode]
         elif mode is not None:
             log("Invalid config option for MODE: %s. Using default." % mode)
         return MODE_MIXED
@@ -32,4 +32,6 @@ class Config(object):
             if len(filtered_list) != len(cert_list):
                 log("Invalid config option for ADDITIONAL_TRUST_ANCHORS: Ignoring all non-byte strings.")
             return filtered_list
+        elif cert_list is not None:
+            log("Invalid config option for ADDITIONAL_TRUST_ANCHORS: Must be a list.")
         return []
