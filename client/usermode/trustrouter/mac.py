@@ -11,7 +11,7 @@ class MacOSAdapter(object):
     ACTION_REJECT = 1
     ACTION_ACCEPT = 0
     
-    def __init__(self, socket_=None, verifier=None):
+    def __init__(self, config=None, socket_=None, verifier=None):
         if socket_ is None:
             self.socket = socket.socket(socket.PF_SYSTEM,
                                         socket.SOCK_STREAM,
@@ -23,7 +23,7 @@ class MacOSAdapter(object):
             syslog.openlog("TrustRouter")
             def log(string):
                 syslog.syslog(syslog.LOG_ALERT, string)
-            self.verifier = RAVerifier(log)
+            self.verifier = RAVerifier(log, config)
         else:
             self.verifier = verifier
         
@@ -81,6 +81,6 @@ class MacOSAdapter(object):
                                      addr[1] & 0x0f == 0x01))
 
 
-def run():
-    adapter = MacOSAdapter()
+def run(config=None):
+    adapter = MacOSAdapter(config)
     adapter.main()
