@@ -17,7 +17,7 @@
 	<key>IFMinorVersion</key>
 	<integer>0</integer>
 	<key>IFPkgBuildDate</key>
-	<date>2012-03-08T12:18:50Z</date>
+	<date>2012-03-08T12:55:48Z</date>
 	<key>IFPkgBuildVersion</key>
 	<string>11D50b</string>
 	<key>IFPkgCreator</key>
@@ -31,7 +31,7 @@
 	<key>IFPkgFlagFollowLinks</key>
 	<true/>
 	<key>IFPkgFlagInstalledSize</key>
-	<integer>52264</integer>
+	<integer>2564</integer>
 	<key>IFPkgFlagIsRequired</key>
 	<true/>
 	<key>IFPkgFlagOverwritePermissions</key>

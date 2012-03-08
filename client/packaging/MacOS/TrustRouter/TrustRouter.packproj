@@ -45,7 +45,7 @@
 									<key>Mode</key>
 									<integer>1</integer>
 									<key>Path</key>
-									<string>/Users/Mike/Desktop/MPRepro/TrustRouter/client/packaging/MacOS/PythonFramework-3.3.pkg/Contents/Resources/ReadMe.txt</string>
+									<string>/Users/Mike/Desktop/MPRepro/TrustRouter/client/packaging/MacOS/TrustRouter/AdditionalContent/PythonFramework-3.3.pkg/Contents/Resources/ReadMe.txt</string>
 									<key>Path Type</key>
 									<integer>1</integer>
 								</dict>
@@ -72,7 +72,7 @@
 							<key>Imported Package</key>
 							<true/>
 							<key>Package Path</key>
-							<string>/Users/Mike/Desktop/MPRepro/TrustRouter/client/packaging/MacOS/PythonFramework-3.3.pkg</string>
+							<string>/Users/Mike/Desktop/MPRepro/TrustRouter/client/packaging/MacOS/TrustRouter/AdditionalContent/PythonFramework-3.3.pkg</string>
 						</dict>
 						<key>Plugins</key>
 						<dict>
@@ -134,7 +134,7 @@
 								<key>IFInstallationScriptsPostflight</key>
 								<dict>
 									<key>Path</key>
-									<string>/Users/Mike/Desktop/MPRepro/TrustRouter/client/packaging/MacOS/PythonFramework-3.3.pkg/Contents/Resources/postflight</string>
+									<string>/Users/Mike/Desktop/MPRepro/TrustRouter/client/packaging/MacOS/TrustRouter/AdditionalContent/PythonFramework-3.3.pkg/Contents/Resources/postflight</string>
 									<key>Status</key>
 									<true/>
 								</dict>
@@ -438,7 +438,7 @@ wrappers for lots of Mac OS X API's.
 														<key>GID</key>
 														<integer>0</integer>
 														<key>Path</key>
-														<string>../net.trustrouter.plist</string>
+														<string>AdditionalContent/net.trustrouter.plist</string>
 														<key>Path Type</key>
 														<integer>2</integer>
 														<key>Privileges</key>
@@ -551,7 +551,7 @@ wrappers for lots of Mac OS X API's.
 														<key>GID</key>
 														<integer>0</integer>
 														<key>Path</key>
-														<string>../start</string>
+														<string>AdditionalContent/start</string>
 														<key>Path Type</key>
 														<integer>2</integer>
 														<key>Privileges</key>
@@ -563,7 +563,249 @@ wrappers for lots of Mac OS X API's.
 													</dict>
 													<dict>
 														<key>Children</key>
-														<array/>
+														<array>
+															<dict>
+																<key>Children</key>
+																<array/>
+																<key>GID</key>
+																<integer>0</integer>
+																<key>Path</key>
+																<string>../../../usermode/trustrouter/__init__.py</string>
+																<key>Path Type</key>
+																<integer>2</integer>
+																<key>Privileges</key>
+																<integer>420</integer>
+																<key>Type</key>
+																<integer>3</integer>
+																<key>UID</key>
+																<integer>0</integer>
+															</dict>
+															<dict>
+																<key>Children</key>
+																<array/>
+																<key>GID</key>
+																<integer>0</integer>
+																<key>Path</key>
+																<string>../../../usermode/trustrouter/certificates.py</string>
+																<key>Path Type</key>
+																<integer>2</integer>
+																<key>Privileges</key>
+																<integer>420</integer>
+																<key>Type</key>
+																<integer>3</integer>
+																<key>UID</key>
+																<integer>0</integer>
+															</dict>
+															<dict>
+																<key>Children</key>
+																<array/>
+																<key>GID</key>
+																<integer>0</integer>
+																<key>Path</key>
+																<string>../../../usermode/trustrouter/core.py</string>
+																<key>Path Type</key>
+																<integer>2</integer>
+																<key>Privileges</key>
+																<integer>420</integer>
+																<key>Type</key>
+																<integer>3</integer>
+																<key>UID</key>
+																<integer>0</integer>
+															</dict>
+															<dict>
+																<key>Children</key>
+																<array/>
+																<key>GID</key>
+																<integer>0</integer>
+																<key>Path</key>
+																<string>../../../usermode/trustrouter/mac.py</string>
+																<key>Path Type</key>
+																<integer>2</integer>
+																<key>Privileges</key>
+																<integer>420</integer>
+																<key>Type</key>
+																<integer>3</integer>
+																<key>UID</key>
+																<integer>0</integer>
+															</dict>
+															<dict>
+																<key>Children</key>
+																<array/>
+																<key>GID</key>
+																<integer>0</integer>
+																<key>Path</key>
+																<string>../../../usermode/trustrouter/packet.py</string>
+																<key>Path Type</key>
+																<integer>2</integer>
+																<key>Privileges</key>
+																<integer>420</integer>
+																<key>Type</key>
+																<integer>3</integer>
+																<key>UID</key>
+																<integer>0</integer>
+															</dict>
+															<dict>
+																<key>Children</key>
+																<array>
+																	<dict>
+																		<key>Children</key>
+																		<array/>
+																		<key>GID</key>
+																		<integer>0</integer>
+																		<key>Path</key>
+																		<string>../../../usermode/trustrouter/security/__init__.py</string>
+																		<key>Path Type</key>
+																		<integer>2</integer>
+																		<key>Privileges</key>
+																		<integer>420</integer>
+																		<key>Type</key>
+																		<integer>3</integer>
+																		<key>UID</key>
+																		<integer>0</integer>
+																	</dict>
+																	<dict>
+																		<key>Children</key>
+																		<array>
+																			<dict>
+																				<key>Children</key>
+																				<array/>
+																				<key>GID</key>
+																				<integer>0</integer>
+																				<key>Path</key>
+																				<string>../../../usermode/trustrouter/security/lib/LICENSE</string>
+																				<key>Path Type</key>
+																				<integer>2</integer>
+																				<key>Privileges</key>
+																				<integer>420</integer>
+																				<key>Type</key>
+																				<integer>3</integer>
+																				<key>UID</key>
+																				<integer>0</integer>
+																			</dict>
+																			<dict>
+																				<key>Children</key>
+																				<array>
+																					<dict>
+																						<key>Children</key>
+																						<array>
+																							<dict>
+																								<key>Children</key>
+																								<array/>
+																								<key>GID</key>
+																								<integer>0</integer>
+																								<key>Path</key>
+																								<string>../../../usermode/trustrouter/security/lib/MacOS/ia32/libsecurity.dylib</string>
+																								<key>Path Type</key>
+																								<integer>2</integer>
+																								<key>Privileges</key>
+																								<integer>493</integer>
+																								<key>Type</key>
+																								<integer>3</integer>
+																								<key>UID</key>
+																								<integer>0</integer>
+																							</dict>
+																						</array>
+																						<key>Expanded</key>
+																						<true/>
+																						<key>GID</key>
+																						<integer>0</integer>
+																						<key>Path</key>
+																						<string>../../../usermode/trustrouter/security/lib/MacOS/ia32</string>
+																						<key>Path Type</key>
+																						<integer>2</integer>
+																						<key>Privileges</key>
+																						<integer>493</integer>
+																						<key>Type</key>
+																						<integer>3</integer>
+																						<key>UID</key>
+																						<integer>0</integer>
+																					</dict>
+																					<dict>
+																						<key>Children</key>
+																						<array>
+																							<dict>
+																								<key>Children</key>
+																								<array/>
+																								<key>GID</key>
+																								<integer>0</integer>
+																								<key>Path</key>
+																								<string>../../../usermode/trustrouter/security/lib/MacOS/x64/libsecurity.dylib</string>
+																								<key>Path Type</key>
+																								<integer>2</integer>
+																								<key>Privileges</key>
+																								<integer>493</integer>
+																								<key>Type</key>
+																								<integer>3</integer>
+																								<key>UID</key>
+																								<integer>0</integer>
+																							</dict>
+																						</array>
+																						<key>Expanded</key>
+																						<true/>
+																						<key>GID</key>
+																						<integer>0</integer>
+																						<key>Path</key>
+																						<string>../../../usermode/trustrouter/security/lib/MacOS/x64</string>
+																						<key>Path Type</key>
+																						<integer>2</integer>
+																						<key>Privileges</key>
+																						<integer>493</integer>
+																						<key>Type</key>
+																						<integer>3</integer>
+																						<key>UID</key>
+																						<integer>0</integer>
+																					</dict>
+																				</array>
+																				<key>Expanded</key>
+																				<true/>
+																				<key>GID</key>
+																				<integer>0</integer>
+																				<key>Path</key>
+																				<string>../../../usermode/trustrouter/security/lib/MacOS</string>
+																				<key>Path Type</key>
+																				<integer>2</integer>
+																				<key>Privileges</key>
+																				<integer>493</integer>
+																				<key>Type</key>
+																				<integer>3</integer>
+																				<key>UID</key>
+																				<integer>0</integer>
+																			</dict>
+																		</array>
+																		<key>Expanded</key>
+																		<true/>
+																		<key>GID</key>
+																		<integer>0</integer>
+																		<key>Path</key>
+																		<string>../../../usermode/trustrouter/security/lib</string>
+																		<key>Path Type</key>
+																		<integer>2</integer>
+																		<key>Privileges</key>
+																		<integer>493</integer>
+																		<key>Type</key>
+																		<integer>3</integer>
+																		<key>UID</key>
+																		<integer>0</integer>
+																	</dict>
+																</array>
+																<key>Expanded</key>
+																<true/>
+																<key>GID</key>
+																<integer>0</integer>
+																<key>Path</key>
+																<string>../../../usermode/trustrouter/security</string>
+																<key>Path Type</key>
+																<integer>2</integer>
+																<key>Privileges</key>
+																<integer>493</integer>
+																<key>Type</key>
+																<integer>3</integer>
+																<key>UID</key>
+																<integer>0</integer>
+															</dict>
+														</array>
+														<key>Expanded</key>
+														<true/>
 														<key>GID</key>
 														<integer>0</integer>
 														<key>Path</key>
@@ -579,7 +821,7 @@ wrappers for lots of Mac OS X API's.
 													</dict>
 												</array>
 												<key>GID</key>
-												<integer>80</integer>
+												<integer>0</integer>
 												<key>Path</key>
 												<string>TrustRouter</string>
 												<key>Path Type</key>
@@ -620,7 +862,7 @@ wrappers for lots of Mac OS X API's.
 																<key>GID</key>
 																<integer>0</integer>
 																<key>Path</key>
-																<string>../trustrouter.kext</string>
+																<string>AdditionalContent/trustrouter.kext</string>
 																<key>Path Type</key>
 																<integer>2</integer>
 																<key>Privileges</key>

@@ -1,11 +1,11 @@
 How to create package for mac
 =============================
 
-1) Build the kernel extension in ../kernelmode/MacOS 
-2) Copy the build product (trustrouter.kext) into this folder.
-3) Open ./TrustRouter/TrustRouter with IceBerg [1].
-4) Select Build - Build.
-5) Run "hdiutil create ./TrustRouter.dmg -srcfolder ./TrustRouter/build/ -ov"
+1) Build the kernel extension in ../kernelmode/MacOS with XCode 4
+2) Copy the build product (trustrouter.kext) to ./TrustRouter/AdditionalContent
+3) Open ./TrustRouter/TrustRouter with IceBerg [1]
+4) Select Build - Build
+5) Run "sudo hdiutil create ./TrustRouter.dmg -srcfolder ./TrustRouter/build/ -ov"
 
 The resulting file ./TrustRouter.dmg is ready for distribution.
 
