@@ -41,7 +41,8 @@ class MacOSAdapter(object):
 
             try:
                 verified_ra = self.verifier.verify(packet, scopeid)
-            except:
+            except Exception as e:
+                self.verifier.log("Error: %s" % e)
                 # something went wrong during verification
                 verified_ra = False
 

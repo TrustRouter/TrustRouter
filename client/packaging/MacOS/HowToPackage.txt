@@ -5,7 +5,7 @@ How to create package for mac
 2) Copy the build product (trustrouter.kext) to ./TrustRouter/AdditionalContent
 3) Open ./TrustRouter/TrustRouter with IceBerg [1]
 4) Select Build - Build
-5) Run "sudo hdiutil create ./TrustRouter.dmg -srcfolder ./TrustRouter/build/ -ov"
+5) Run "sudo hdiutil create ./TrustRouter.dmg -srcfolder ./TrustRouter/TrustRouter/ -ov"
 
 The resulting file ./TrustRouter.dmg is ready for distribution.
 

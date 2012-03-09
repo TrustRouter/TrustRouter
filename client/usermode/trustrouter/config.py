@@ -2,6 +2,7 @@
 MODE_MIXED = 0
 MODE_ONLY_SEND = 1
 MODE_NO_SEND = 2
+MODE_NO_UNSECURED_AFTER_SECURED = 3
 
 
 class Config(object):
@@ -9,7 +10,8 @@ class Config(object):
     MODE_TRANSLATION = {
         "mixedMode" : MODE_MIXED,
         "onlySend" : MODE_ONLY_SEND,
-        "noSend" : MODE_NO_SEND
+        "noSend" : MODE_NO_SEND,
+        "noUnsecuredAfterSecured" : MODE_NO_UNSECURED_AFTER_SECURED
     }
 
     def __init__(self, config, error_log):

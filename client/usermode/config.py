@@ -2,6 +2,8 @@
 #   - "mixedMode": process secured and unsecured RAs, but unsecured RAs
 #                  cannot overwrite secured RAs
 #   - "onlySend":  process only secured RAs, unsecured RAs will be blocked
+#   - "noUnsecuredAfterSecured": reject all unsecured RAs on an interface 
+#                  after receiving the first secured RA on that interface
 #   - "noSend":    process all RAs
 
 MODE = "mixedMode"

@@ -192,8 +192,11 @@ class RAVerifier(object):
 
 
     def _accept_unsigned_ra(self, ra, prefix_option):
-        if self.config.mode == config.MODE_ONLY_SEND:
+        if (self.config.mode == config.MODE_ONLY_SEND or
+                (self.config.mode == config.MODE_NO_UNSECURED_AFTER_SECURED and
+                    len(self._secured_routers) > 0)):
             return False
+        # mixed mode
         prefix = (prefix_option["prefix"], prefix_option["prefix_length"])
         return (ra["source_addr"] not in self._secured_routers and 
                 prefix not in self._secured_prefixes)
