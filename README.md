@@ -28,4 +28,4 @@ On Mac OS X you can configure the a few options in the configuration file locate
 *"noSend"* (process all RAs)
 
 **ADDITIONAL_TRUST_ANCHORS**: 
-list of DER encoded certificates that should be used as trust anchors in addition to the standart trust anchors that ship with TrustRouter
+list of DER encoded certificates that should be used as trust anchors in addition to the standard trust anchors that ship with TrustRouter (default: empty list)

@@ -10,6 +10,6 @@ MODE = "mixedMode"
 
 # ADDITIONAL_TRUST_ANCHORS
 # list of DER encoded certificates that should be used as trust anchors
-# in addition to the standart trust anchors that ship with TrustRouter
+# in addition to the standard trust anchors that ship with TrustRouter
 
 ADDITIONAL_TRUST_ANCHORS = []
