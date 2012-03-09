@@ -23,7 +23,7 @@ elif system == "Linux":
     lib_directory += "Linux/"
     lib_name = "libsecurity.so"
 else:
-    raise Exception("Unable to load security library. System: %s\n", system)
+    raise Exception("Unable to load security library. System: %s\n" % system)
 
 architecture = platform.architecture()[0]
 
@@ -32,10 +32,10 @@ if architecture == "64bit":
 elif architecture == "32bit":
     lib_directory += "ia32/"
 else:
-    raise Exception("Unable to load security library. Architecture: %s\n", architecture)
+    raise Exception("Unable to load security library. Architecture: %s\n" % architecture)
 
 if not os.path.isfile(lib_directory + lib_name):
-    raise Exception("Unable to load security library. Path: %s\n", lib_directory + lib_name)
+    raise Exception("Unable to load security library. Path: %s\n" % (lib_directory + lib_name))
 
 libsecurity = CDLL(lib_directory + lib_name)
 
