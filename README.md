@@ -24,8 +24,14 @@ On Mac OS X you can configure the following options in the configuration file lo
 **MODE** - valid options are: 
 *"mixedMode"* (default, process secured and unsecured RAs, but unsecured RAs cannot overwrite secured RAs), 
 *"onlySend"* (process only secured RAs, unsecured RAs will be blocked), 
-*"noUnsecuredAfterSecured"* (reject all unsecured RAs on an interface after receiving the first secured RA on that interface)
+*"noUnsecuredAfterSecured"* (reject all unsecured RAs on an interface after receiving the first secured RA on that interface), 
 *"noSend"* (process all RAs)
 
 **ADDITIONAL_TRUST_ANCHORS**: 
 list of DER encoded certificates that should be used as trust anchors in addition to the standard trust anchors that ship with TrustRouter (default: empty list)
+
+Documentation
+-------------
+Please refer to our [wiki](https://github.com/TrustRouter/TrustRouter/wiki). It contains background information about, router advertisements, SEND, and certificate paths. In addition to that, the wiki also explains our TrustRouter implementation in greater detail and we point out some of the quirks we encountered while implementing the SEND protocol on various platforms.
+
+Do you have more questions or comments? Do not hesitate to contact us at team@trustrouter.net.
