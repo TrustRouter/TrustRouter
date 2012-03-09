@@ -2,25 +2,26 @@
 # -*- coding: utf-8 -*-
 
 import os
+import os.path
 import sys
 import platform
 from ctypes import CDLL, c_char_p, c_int
 
 module_path = os.path.abspath(__file__)
 module_directory = os.path.split(module_path)[0]
-lib_directory = module_directory + "/lib/"
+lib_directory = os.path.join(module_directory, "lib")
 
 # platform-switch only for repository/developing
 system = platform.system()
 
 if system == "Windows":
-    lib_directory += "Windows/"
+    lib_directory = os.path.join(lib_directory, "Windows")
     lib_name = "libsecurity.dll"
 elif system == "Darwin":
-    lib_directory += "MacOS/"
+    lib_directory = os.path.join(lib_directory, "MacOS")
     lib_name = "libsecurity.dylib"
 elif system == "Linux":
-    lib_directory += "Linux/"
+    lib_directory = os.path.join(lib_directory, "Linux")
     lib_name = "libsecurity.so"
 else:
     raise Exception("Unable to load security library. System: %s\n" % system)
@@ -28,16 +29,17 @@ else:
 architecture = platform.architecture()[0]
 
 if architecture == "64bit":
-    lib_directory += "x64/"
+    lib_directory = os.path.join(lib_directory, "x64")
 elif architecture == "32bit":
-    lib_directory += "ia32/"
+    lib_directory = os.path.join(lib_directory, "ia32")
 else:
     raise Exception("Unable to load security library. Architecture: %s\n" % architecture)
 
-if not os.path.isfile(lib_directory + lib_name):
-    raise Exception("Unable to load security library. Path: %s\n" % (lib_directory + lib_name))
+lib_abspath = os.path.join(lib_directory, lib_name)
+if not os.path.isfile(lib_abspath):
+    raise Exception("Unable to load security library. Path: %s\n" % lib_abspath)
 
-libsecurity = CDLL(lib_directory + lib_name)
+libsecurity = CDLL(lib_abspath)
 
 _verify_cert = libsecurity.verify_cert
 _verify_cert.argtypes = [c_int, c_int, c_char_p, c_int, c_int, c_char_p, c_int, c_char_p]
