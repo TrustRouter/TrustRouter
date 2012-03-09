@@ -1,0 +1,22 @@
+#!/bin/sh
+#
+# Recompile the .py files.
+#
+
+PYVER="3.3"
+FWK="/Library/Frameworks/Python.framework/Versions/3.3"
+
+"${FWK}/bin/python3.3" -Wi \
+    "${FWK}/lib/python${PYVER}/compileall.py" \
+    -x badsyntax -x site-packages \
+    "${FWK}/lib/python${PYVER}"
+
+"${FWK}/bin/python3.3" -Wi -O \
+    "${FWK}/lib/python${PYVER}/compileall.py" \
+    -x badsyntax -x site-packages \
+    "${FWK}/lib/python${PYVER}"
+
+chgrp -R admin "${FWK}"
+chmod -R g+w "${FWK}"
+
+exit 0

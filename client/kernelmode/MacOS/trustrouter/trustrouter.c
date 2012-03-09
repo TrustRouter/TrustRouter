@@ -64,7 +64,7 @@ kern_return_t trustrouter_start(kmod_info_t * ki, void *d) {
         install_filter();
     } else if (ret != 0) goto error;
     
-    DebugPrint("[TrustRouter] Finished loading Kext.\n");
+    printf("[TrustRouter] Kext is active.\n");
     return KERN_SUCCESS;
     
 error:

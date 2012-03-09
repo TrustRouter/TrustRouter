@@ -1,4 +1,4 @@
-/* this directory holds pre-compiled static libraries with enable-rfc3779
+/* this directory holds pre-compiled static libraries of openssl-1.0.0g with enable-rfc3779
 * used to compile the libsecurity */
 /* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)
  * All rights reserved.

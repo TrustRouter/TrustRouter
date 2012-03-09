@@ -4,6 +4,7 @@
 
 import sys
 import os
+import os.path
 from unittest import TestCase, TestSuite, TextTestRunner
 from security import verify_prefix_with_cert, verify_cert, verify_signature
 
@@ -13,41 +14,41 @@ class TestRAVerification(TestCase):
     module_directory = os.path.split(module_path)[0]
     upper_directory = os.path.split(module_directory)[0]
 
-    o_data_directory = module_directory + "/example_data/" + "only_one_block/"
-    m_data_directory = module_directory + "/example_data/" + "multiple_blocks/"
+    o_data_directory = os.path.join(module_directory, "example_data", "only_one_block")
+    m_data_directory = os.path.join(module_directory, "example_data", "multiple_blocks")
 
-    ripe_o_pem_path = o_data_directory + "ripe/ripe.cer"
-    dfn_o_pem_path = o_data_directory + "dfn/dfn.cer"
-    uni_o_pem_path = o_data_directory + "uni_potsdam/uni_potsdam.cer"
-    hpi_o_pem_path = o_data_directory + "hpi/hpi.cer"
-    router0_o_pem_path = o_data_directory + "router0/router0.cer"
-    router1_o_pem_path = o_data_directory + "router1_correct/router1.cer"
-    router2_o_pem_path = o_data_directory + "router2_faulty_range/router2.cer"
-    router3_o_pem_path = o_data_directory + "router3_faulty_selfsigned/router3.cer"
+    ripe_o_pem_path = os.path.join(o_data_directory, "ripe", "ripe.cer")
+    dfn_o_pem_path = os.path.join(o_data_directory, "dfn", "dfn.cer")
+    uni_o_pem_path = os.path.join(o_data_directory, "uni_potsdam", "uni_potsdam.cer")
+    hpi_o_pem_path = os.path.join(o_data_directory, "hpi", "hpi.cer")
+    router0_o_pem_path = os.path.join(o_data_directory, "router0", "router0.cer")
+    router1_o_pem_path = os.path.join(o_data_directory, "router1_correct", "router1.cer")
+    router2_o_pem_path = os.path.join(o_data_directory, "router2_faulty_range", "router2.cer")
+    router3_o_pem_path = os.path.join(o_data_directory, "router3_faulty_selfsigned", "router3.cer")
 
-    ripe_o_der_path = o_data_directory + "ripe/ripe.der"
-    dfn_o_der_path = o_data_directory + "dfn/dfn.der"
-    uni_o_der_path = o_data_directory + "uni_potsdam/uni_potsdam.der"
-    hpi_o_der_path = o_data_directory + "hpi/hpi.der"
-    router0_o_der_path = o_data_directory + "router0/router0.der"
-    router1_o_der_path = o_data_directory + "router1_correct/router1.der"
-    router2_o_der_path = o_data_directory + "router2_faulty_range/router2.der"
-    router3_o_der_path = o_data_directory + "router3_faulty_selfsigned/router3.der"
+    ripe_o_der_path = os.path.join(o_data_directory, "ripe", "ripe.der")
+    dfn_o_der_path = os.path.join(o_data_directory, "dfn", "dfn.der")
+    uni_o_der_path = os.path.join(o_data_directory, "uni_potsdam", "uni_potsdam.der")
+    hpi_o_der_path = os.path.join(o_data_directory, "hpi", "hpi.der")
+    router0_o_der_path = os.path.join(o_data_directory, "router0", "router0.der")
+    router1_o_der_path = os.path.join(o_data_directory, "router1_correct", "router1.der")
+    router2_o_der_path = os.path.join(o_data_directory, "router2_faulty_range", "router2.der")
+    router3_o_der_path = os.path.join(o_data_directory, "router3_faulty_selfsigned", "router3.der")
 
-    ripe_m_pem_path = m_data_directory + "ripe/ripe.cer"
-    dfn_m_pem_path = m_data_directory + "dfn/dfn.cer"
-    uni_m_pem_path = m_data_directory + "uni_potsdam/uni_potsdam.cer"
-    hpi_m_pem_path = m_data_directory + "hpi/hpi.cer"
-    router0_m_pem_path = m_data_directory + "router0/router0.cer"
+    ripe_m_pem_path = os.path.join(m_data_directory, "ripe", "ripe.cer")
+    dfn_m_pem_path = os.path.join(m_data_directory, "dfn", "dfn.cer")
+    uni_m_pem_path = os.path.join(m_data_directory, "uni_potsdam", "uni_potsdam.cer")
+    hpi_m_pem_path = os.path.join(m_data_directory, "hpi", "hpi.cer")
+    router0_m_pem_path = os.path.join(m_data_directory, "router0", "router0.cer")
 
-    ripe_m_der_path = m_data_directory + "ripe/ripe.der"
-    dfn_m_der_path = m_data_directory + "dfn/dfn.der"
-    uni_m_der_path = m_data_directory + "uni_potsdam/uni_potsdam.der"
-    hpi_m_der_path = m_data_directory + "hpi/hpi.der"
-    router0_m_der_path = m_data_directory + "router0/router0.der"
+    ripe_m_der_path = os.path.join(m_data_directory, "ripe", "ripe.der")
+    dfn_m_der_path = os.path.join(m_data_directory, "dfn", "dfn.der")
+    uni_m_der_path = os.path.join(m_data_directory, "uni_potsdam", "uni_potsdam.der")
+    hpi_m_der_path = os.path.join(m_data_directory, "hpi", "hpi.der")
+    router0_m_der_path = os.path.join(m_data_directory, "router0", "router0.der")
 
-    signed_ra_path = o_data_directory + "router0/signed_data"
-    ra_signature_path = o_data_directory + "router0/signature"
+    signed_ra_path = os.path.join(o_data_directory, "router0", "signed_data")
+    ra_signature_path = os.path.join(o_data_directory, "router0", "signature")
 
     fh = open(signed_ra_path, "rb")
     signed_ra = fh.read()

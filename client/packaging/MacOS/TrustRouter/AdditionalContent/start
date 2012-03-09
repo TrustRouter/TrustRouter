@@ -1,0 +1,10 @@
+#! /Library/Frameworks/Python.framework/Versions/3.3/bin/python3
+
+from trustrouter import mac
+
+try:
+	import config
+except:
+	config = None
+
+mac.run(config)
