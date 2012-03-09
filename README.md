@@ -19,7 +19,7 @@ Do you have comments, questions, or remarks? Contact us at team@trustrouter.net.
 
 Configuration
 -------------
-On Mac OS X you can configure the a few options in the configuration file located at */Library/TrustRouter/config.py*. The other operating systems will use the default values.
+On Mac OS X you can configure the following options in the configuration file located at */Library/TrustRouter/config.py*. The other operating systems will use the default values.
 
 **MODE** - valid options are: 
 *"mixedMode"* (default, process secured and unsecured RAs, but unsecured RAs cannot overwrite secured RAs), 
