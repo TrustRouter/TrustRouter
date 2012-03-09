@@ -2,4 +2,9 @@
 
 from trustrouter import mac
 
-mac.run()
+try:
+	import config
+except:
+	config = None
+
+mac.run(config)

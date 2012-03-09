@@ -3,38 +3,53 @@ import socket
 import struct
 import time
 
+from trustrouter import config
 from trustrouter import packet
 from trustrouter import security
-from trustrouter.certificates import trust_anchors
+from trustrouter import certificates
 
 # see RFC 3971
 CGA_MESSAGE_TYPE_TAG = b"\x08\x6F\xCA\x5E\x10\xB2\x00\xC9\x9C\x8C\xE0\x01\x64\x27\x7C\x08"
 
 class RAVerifier(object):
 
-    def __init__(self, log_fn=print):
+    def __init__(self, log_fn=print, user_config=None):
         self.log = log_fn
+        self.config = config.Config(user_config, self.log)
+        # add trust anchors that ship with TrustRouter
+        self.config.trust_anchors.extend(certificates.trust_anchors)
+
+        self._secured_routers = []
+        self._secured_prefixes = []
 
     def verify(self, data, scopeid):
+        if self.config.mode == config.MODE_NO_SEND:
+            return True
+
         ra = packet.IPv6(data)
         rsa_option, prefix_options, icmp_data = self._extract_info(ra)
 
+        if len(prefix_options) != 1:
+            # TODO: how to handle multiple prefixes and no prefixes?
+            self.log("Not exactly one prefix option --> reject")
+            return False
+        prefix_option = prefix_options[0]
+
         if rsa_option is None:
-            self.log("Unsigned RA --> accept")
-            return True
+            result = self._accept_unsigned_ra(ra, prefix_option)
+            self.log("Unsigned RA --> Accepted: %s" % result)
+            return result
 
         if rsa_option is not ra.payload.options[-1]:
             self.log("Found data after RSA option --> reject")
             return False
-        
-        if len(prefix_options) != 1:
-            # TODO: how to handle multiple prefixes and no prefixes?
-            return False
-        prefix_option = prefix_options[0]
 
         signed_data = self._get_signed_data(ra, icmp_data)
 
-        sock = socket.socket(socket.AF_INET6, socket.SOCK_RAW, packet.IPPROTO_ICMPV6)        
+        sock = socket.socket(
+            socket.AF_INET6,
+            socket.SOCK_RAW,
+            packet.IPPROTO_ICMPV6)        
         identifier = self._send_cps(sock, scopeid, ra["source_addr"])
 
         # process CPAs
@@ -59,6 +74,7 @@ class RAVerifier(object):
                             rsa_option["digital_signature"]):
                 self.log("Valid signature --> accept")
                 sock.close()
+                self._add_to_secured_list(ra, prefix_option)
                 return True
                 
         self.log("Invalid Signature --> reject")
@@ -151,10 +167,11 @@ class RAVerifier(object):
                 break
 
     
-    def _verify(self, router_certs, intermediate_certs, prefix_option, signed_data, signature):
+    def _verify(self, router_certs, intermediate_certs,
+                prefix_option, signed_data, signature):
         for router_cert in router_certs:                
             if not security.verify_prefix_with_cert(
-                    trust_anchors,
+                    self.config.trust_anchors,
                     intermediate_certs,
                     router_cert, prefix_option["prefix"],
                     prefix_option["prefix_length"]):
@@ -173,4 +190,21 @@ class RAVerifier(object):
         # Needed to convert router's IP address (normally we would send to router multicast address)
         return "%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x" % tuple(address)
 
-            
+
+    def _accept_unsigned_ra(self, ra, prefix_option):
+        if (self.config.mode == config.MODE_ONLY_SEND or
+                (self.config.mode == config.MODE_NO_UNSECURED_AFTER_SECURED and
+                    len(self._secured_routers) > 0)):
+            return False
+        # mixed mode
+        prefix = (prefix_option["prefix"], prefix_option["prefix_length"])
+        return (ra["source_addr"] not in self._secured_routers and 
+                prefix not in self._secured_prefixes)
+
+
+    def _add_to_secured_list(self, ra, prefix_option):
+        if ra["source_addr"] not in self._secured_routers:
+            self._secured_routers.append(ra["source_addr"])
+        prefix = (prefix_option["prefix"], prefix_option["prefix_length"])
+        if prefix not in self._secured_prefixes:
+            self._secured_prefixes.append(prefix)
