@@ -66,5 +66,4 @@ class WindowsAdapter(object):
         
 def run(log_fn):
     adapter = WindowsAdapter(log_fn=log_fn)
-    while True:
-        adapter.main()
+    adapter.main()
