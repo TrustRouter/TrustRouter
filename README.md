@@ -21,11 +21,13 @@ Configuration
 -------------
 On Mac OS X you can configure the following options in the configuration file located at /Library/TrustRouter/config.py. The other operating systems will use the default values.
 
-*MODE* - valid options are:
-   * "mixedMode": process secured and unsecured RAs, but unsecured RAs cannot overwrite secured RAs (default)
-   * "onlySend": process only secured RAs, unsecured RAs will be blocked
-   * "noUnsecuredAfterSecured": reject all unsecured RAs on an interface after receiving the first secured RA on that interface
-   * "noSend": process all RAs
+**MODE** - valid options are:
 
-*ADDITIONAL_TRUST_ANCHORS*
+ * "mixedMode": process secured and unsecured RAs, but unsecured RAs cannot overwrite secured RAs (default)
+ * "onlySend": process only secured RAs, unsecured RAs will be blocked
+ * "noUnsecuredAfterSecured": reject all unsecured RAs on an interface after receiving the first secured RA on that interface
+ * "noSend": process all RAs
+
+**ADDITIONAL_TRUST_ANCHORS**
+
 list of DER encoded certificates that should be used as trust anchors in addition to the standart trust anchors that ship with TrustRouter
