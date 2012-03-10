@@ -18,7 +18,7 @@ class Config(object):
 
     def __init__(self, config, error_log):
         self.mode = self._mode(config, error_log)
-        self.trust_anchors = self._trust_anchor(config, error_log)
+        self.trust_anchors = self._trust_anchors(config, error_log)
 
 
     def _mode(self, config, log):
@@ -29,7 +29,7 @@ class Config(object):
             log("Invalid config option for MODE: %s. Using default." % mode)
         return MODE_MIXED
 
-    def _trust_anchor(self, config, log):
+    def _trust_anchors(self, config, log):
         cert_list = getattr(config, "ADDITIONAL_TRUST_ANCHORS", None)
         if isinstance(cert_list, list):
             valid_paths = set([item for item in cert_list if os.path.exists(item)])
