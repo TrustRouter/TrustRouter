@@ -115,13 +115,13 @@ void install_wfp_filters() {
     fwpConditions[0].fieldKey = FWPM_CONDITION_IP_PROTOCOL;
 	fwpConditions[0].matchType = FWP_MATCH_EQUAL;
 	fwpConditions[0].conditionValue.type = FWP_UINT8;
-    fwpConditions[0].conditionValue.uint8 = 58;
+    fwpConditions[0].conditionValue.uint8 = 58; // ICMPv6
     
   
     fwpConditions[1].fieldKey = FWPM_CONDITION_IP_LOCAL_PORT;
 	fwpConditions[1].matchType = FWP_MATCH_EQUAL;
 	fwpConditions[1].conditionValue.type = FWP_UINT16;
-	fwpConditions[1].conditionValue.uint16 = 134; // Router Advertisment code
+	fwpConditions[1].conditionValue.uint16 = 134; // Router Advertisment
     
     
 	/*
@@ -189,5 +189,4 @@ int main(int argc, char **args) {
     
     install_wfp_filters();		
     
-    getchar();
 }
