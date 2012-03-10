@@ -1,4 +1,6 @@
 
+import os.path
+
 MODE_MIXED = 0
 MODE_ONLY_SEND = 1
 MODE_NO_SEND = 2
@@ -30,10 +32,17 @@ class Config(object):
     def _trust_anchor(self, config, log):
         cert_list = getattr(config, "ADDITIONAL_TRUST_ANCHORS", None)
         if isinstance(cert_list, list):
-            filtered_list = [item for item in cert_list if isinstance(item, bytes)]
-            if len(filtered_list) != len(cert_list):
-                log("Invalid config option for ADDITIONAL_TRUST_ANCHORS: Ignoring all non-byte strings.")
-            return filtered_list
+            valid_paths = set([item for item in cert_list if os.path.exists(item)])
+            invalid_paths = set(cert_list).difference(valid_paths)
+            if len(invalid_paths) > 0:
+                log("Invalid config option for ADDITIONAL_TRUST_ANCHORS, path does not point to a file: %s" % invalid_paths)
+            result = []
+            for path in valid_paths:
+                fh = open(path, "rb")
+                cert = fh.read()
+                fh.close()
+                result.append(cert)
+            return result
         elif cert_list is not None:
             log("Invalid config option for ADDITIONAL_TRUST_ANCHORS: Must be a list.")
         return []
