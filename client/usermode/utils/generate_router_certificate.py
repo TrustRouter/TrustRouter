@@ -49,11 +49,11 @@ def generate_CA_certificate(ca_base_name):
 
         key_path = input("\nPath to CAs private key? \t")
         if not os.path.isfile(key_path):
-            raise RunTimeError("%s does not point to a file." % key_path)
+            raise RuntimeError("%s does not point to a file." % key_path)
 
         der_path = input("\nPath to DER-encoded CA certificate? \t")
         if not os.path.isfile(der_path):
-            raise RunTimeError("%s does not point to a file." % der_path)
+            raise RuntimeError("%s does not point to a file." % der_path)
 
     return { "key_path" : key_path, "der_path" : der_path }
 
@@ -130,8 +130,13 @@ def _v6_prefix_to_der_string(prefix, prefix_length):
     address = []
 
     for double_byte in prefix.split(":"):
-        address.append(double_byte[:2])
-        address.append(double_byte[2:])
+        if len(double_byte) % 2 != 0:
+            raise RuntimeError("Found Half-byte: Bytes are represented by two hex-digits. Therefore number of chars in prefix must be multiple of two.")
+        address.append(double_byte[0:2])
+        if len(double_byte) > 4:
+            raise RuntimeError("Found oversized Byte-block: IPv6-addresses are represented by blocks of two bytes (two hex-digits per byte) separated by a double-point ':'. Therefore number of chars between two ':' must be four.")
+        if len(double_byte) == 4:
+            address.append(double_byte[2:4])
 
     used_bytes = math.ceil(prefix_length / 8)
     unused_bits = used_bytes * 8 - prefix_length
