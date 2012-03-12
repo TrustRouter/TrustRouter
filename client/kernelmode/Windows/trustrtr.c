@@ -43,13 +43,9 @@ NTSTATUS DriverEntry(
 	pDriverObject->MajorFunction[IRP_MJ_WRITE] = SendCalloutWrite;
 	
 	pDeviceObject->Flags = DO_BUFFERED_IO;		
-	
-	//gSpinLock = ExAllocatePoolWithTag(NonPagedPool, sizeof(KSPIN_LOCK), "denS");
-	//KeInitializeSpinLock(gSpinLock);
-	ExInitializeFastMutex(&gListMutex);
-	
-	InitializeListHead(&gReinjectListHead);
-	
+
+	ExInitializeFastMutex(&gListMutex);	
+	InitializeListHead(&gReinjectListHead);	
 	InitializeFilter();
 	
 	return status;
@@ -459,29 +455,19 @@ VOID completeClassificationOfPacket(
 	switch(action) {
 	
 	case 'P': 
-		DbgPrint("Packet classified as 'Permit'.\n");
+		//DbgPrint("Packet classified as 'Permit'.\n");
 		completeOperationAndReinjectPacket(pReinjectInfo);
 		break;
 
 	case 'B':
-		DbgPrint("Packet classified as 'Block'.\n");
-        if (pReinjectInfo->aleCompletionContext != NULL) {
-            // Could be NULL when completionHandle was NULL during classifyFn
-            FwpsCompleteOperation0(pReinjectInfo->aleCompletionContext, NULL);
-        }
+		//DbgPrint("Packet classified as 'Block'.\n");
 		break;	
 		
 	default:
-		DbgPrint("Packet classified as 'Block' per default.\n");
-        if (pReinjectInfo->aleCompletionContext != NULL) {
-            // Could be NULL when completionHandle was NULL during classifyFn
-            FwpsCompleteOperation0(pReinjectInfo->aleCompletionContext, NULL);
-        }
+		//DbgPrint("Packet classified as 'Block' per default.\n");
 		break;	
 		
 	}
-		
-	
 	
 }
 
@@ -489,14 +475,9 @@ VOID completeOperationAndReinjectPacket(ICMP_V6_REINJECT_INFO *pReinjectInfo) {
 	
 	NTSTATUS status = NULL;
 	
-	DbgPrint("------ Reinjection Function ---------:\n");
-	//printDataFromNetBufferList(pReinjectInfo->netBufferList);    
+	//DbgPrint("------ Reinjection Function ---------:\n");   
      
-    if (pReinjectInfo->aleCompletionContext != NULL) {
-        // Could be NULL when completionHandle was NULL during classifyFn     
-        FwpsCompleteOperation0(pReinjectInfo->aleCompletionContext, pReinjectInfo->netBufferList);
-	}
-	 status = FwpsInjectTransportReceiveAsync0(
+	status = FwpsInjectTransportReceiveAsync0(
 			pReinjectInfo->injectionHandle,
 			NULL,
 		    0,
@@ -578,16 +559,10 @@ NTSTATUS NTAPI NotifyFn1(
 
 VOID DriverUnload(IN PDRIVER_OBJECT pDriverObject)
 {
-	NTSTATUS status = STATUS_SUCCESS;
 	
-	status = FwpsCalloutUnregisterByKey0(&SEND_CALLOUT_DRIVER);
+	FwpsCalloutUnregisterByKey0(&SEND_CALLOUT_DRIVER);
 	
-	//FwpmCalloutDeleteByKey0(
-	//	EngineHandle,
-	//	&SEND_CALLOUT_DRIVER
-	//);	
-	
-	status = IoDeleteSymbolicLink(&symLinkName);
+	IoDeleteSymbolicLink(&symLinkName);
 	
 	IoDeleteDevice(pDriverObject->DeviceObject);
 		
