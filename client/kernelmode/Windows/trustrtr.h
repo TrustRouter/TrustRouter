@@ -1,5 +1,10 @@
-#ifndef _send_callout_h
-#define _send_callout_h
+#ifndef _trustrtr_h
+#define _trustrtr_h
+
+#include <ntddk.h>
+#include <fwpsk.h>
+#include <fwpmk.h>
+#include <initguid.h>
 
 typedef struct ICMP_V6_REINJECT_INFO {
 	NET_BUFFER_LIST *netBufferList;
@@ -32,7 +37,7 @@ NTSTATUS NTAPI TrustrtrNotify(
     IN const GUID  *filterKey,
     IN const FWPS_FILTER1  *filter);
 		
-VOID NTAPI completionFn(
+VOID NTAPI cleanUpAfterReinject(
 	IN VOID *context,
 	IN OUT NET_BUFFER_LIST *netBufferList,
 	IN BOOLEAN dispatchLevel);
@@ -43,11 +48,8 @@ VOID completeClassificationOfPacket(
 	ICMP_V6_REINJECT_INFO *pReinjectInfo,
 	UCHAR action);
 	
-VOID completeOperationAndReinjectPacket(
-	ICMP_V6_REINJECT_INFO *pReinjectInfo);
-	
-BOOLEAN ICMPPaketIsRA(NET_BUFFER_LIST *netBufferList);    
-    
+VOID reinjectPacket(ICMP_V6_REINJECT_INFO *pReinjectInfo);
+VOID removeFromListAndFreePacket(ICMP_V6_REINJECT_INFO *pReinjectInfo);
 VOID printDataFromNetBufferList(NET_BUFFER_LIST *netBufferList);
 	
 NTSTATUS TrustrtrCalloutCreate(PDEVICE_OBJECT pDeviceObject, PIRP Irp);

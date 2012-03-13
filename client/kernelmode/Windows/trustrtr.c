@@ -1,8 +1,3 @@
-#include <ntddk.h>
-#include <fwpsk.h>
-#include <fwpmk.h>
-#include <initguid.h>
-
 #include "trustrtr.h"
 
 // {80E84D14-A7DD-4b5f-B5BD-51BCD21EAA49}
@@ -167,9 +162,9 @@ VOID NTAPI TrustrtrClassify(
     // Allocate and populate a ICMP_V6_REINJECT_INFO structure that holds all information
     // necessary to reinject the packet later if necessary.
     // If the decision is made in user mode to permit the packet, this information
-    // will be read in completeOperationAndReinjectPacket().
+    // will be read in reinjectPacket().
     
-    reinjectInfo = ExAllocatePoolWithTag(PagedPool, sizeof(ICMP_V6_REINJECT_INFO), "denS");
+    reinjectInfo = ExAllocatePoolWithTag(PagedPool, sizeof(ICMP_V6_REINJECT_INFO), 'denS');
     
     reinjectInfo->netBufferList = clonedNetBufferList;
     reinjectInfo->injectionHandle = injectionHandle;
@@ -231,7 +226,7 @@ NTSTATUS TrustrtrCalloutRead(PDEVICE_OBJECT pDeviceObject, PIRP Irp) {
 
 			pNetBuffer = NET_BUFFER_LIST_FIRST_NB(pReinjectInfoToRead->netBufferList);
 
-			packetBuf = ExAllocatePoolWithTag(PagedPool, NET_BUFFER_DATA_LENGTH(pNetBuffer), "denS");
+			packetBuf = ExAllocatePoolWithTag(PagedPool, NET_BUFFER_DATA_LENGTH(pNetBuffer), 'denS');
 			packetByteCount = NET_BUFFER_DATA_LENGTH(pNetBuffer);
 			
             // NdisGetDataBuffer may either return a pointer to the packet data
@@ -302,7 +297,7 @@ NTSTATUS TrustrtrCalloutWrite(PDEVICE_OBJECT pDeviceObject, PIRP Irp) {
 			ICMP_V6_REINJECT_INFO *pReinjectInfo;
 			UCHAR action;
 			
-			pClassificationResult = ExAllocatePoolWithTag(PagedPool, sizeof(USER_MODE_CLASSIFICATION_RESULT), "denS");
+			pClassificationResult = ExAllocatePoolWithTag(PagedPool, sizeof(USER_MODE_CLASSIFICATION_RESULT), 'denS');
 			RtlCopyMemory(pClassificationResult, pWriteDataBuffer, sizeof(USER_MODE_CLASSIFICATION_RESULT));
 			
 			pReinjectInfo = pClassificationResult->pReinjectInfo;
@@ -350,7 +345,7 @@ VOID printDataFromNetBufferList(NET_BUFFER_LIST *netBufferList) {
 	netBuffer = NET_BUFFER_LIST_FIRST_NB(netBufferList);
 	
 	//TODO free packetBuf
-	packetBuf = ExAllocatePoolWithTag(PagedPool, NET_BUFFER_DATA_LENGTH(netBuffer), "denS");
+	packetBuf = ExAllocatePoolWithTag(PagedPool, NET_BUFFER_DATA_LENGTH(netBuffer), 'denS');
 	packetByteCount = NET_BUFFER_DATA_LENGTH(netBuffer);
 	
 	Ppacket = NdisGetDataBuffer(netBuffer,
@@ -369,6 +364,8 @@ VOID printDataFromNetBufferList(NET_BUFFER_LIST *netBufferList) {
 		DbgPrint("%0x ", printPacket[i]);
 	}
 	DbgPrint("\n");
+    
+    ExFreePoolWithTag(packetBuf, 'denS');
 }
 
 VOID completeClassificationOfPacket(
@@ -380,28 +377,35 @@ VOID completeClassificationOfPacket(
 	
 	case 'P': 
 		//DbgPrint("Packet classified as 'Permit'.\n");
-		completeOperationAndReinjectPacket(pReinjectInfo);
+		reinjectPacket(pReinjectInfo);
 		break;
 
 	case 'B':
 		//DbgPrint("Packet classified as 'Block'.\n");
+        removeFromListAndFreePacket(pReinjectInfo);
 		break;	
 		
 	default:
 		//DbgPrint("Packet classified as 'Block' per default.\n");
+        removeFromListAndFreePacket(pReinjectInfo);
 		break;	
 		
-	}
-	
+	}	
 }
 
-VOID completeOperationAndReinjectPacket(ICMP_V6_REINJECT_INFO *pReinjectInfo) {
-	
-	NTSTATUS status = NULL;
-	
-	//DbgPrint("------ Reinjection Function ---------:\n");   
+
+VOID removeFromListAndFreePacket(ICMP_V6_REINJECT_INFO *pReinjectInfo) 
+{
+    ExAcquireFastMutex(&gListMutex);	
+	RemoveEntryList(&(pReinjectInfo->listEntry));	
+	ExReleaseFastMutex(&gListMutex);
+    
+    FwpsFreeCloneNetBufferList0(pReinjectInfo->netBufferList, 0);
+}
+
+VOID reinjectPacket(ICMP_V6_REINJECT_INFO *pReinjectInfo) {
      
-	status = FwpsInjectTransportReceiveAsync0(
+	NTSTATUS status = FwpsInjectTransportReceiveAsync0(
 			pReinjectInfo->injectionHandle,
 			NULL,
 		    0,
@@ -411,26 +415,26 @@ VOID completeOperationAndReinjectPacket(ICMP_V6_REINJECT_INFO *pReinjectInfo) {
 			pReinjectInfo->interfaceIndex,
 			pReinjectInfo->subInterfaceIndex,
 			pReinjectInfo->netBufferList,
-			completionFn,
+			cleanUpAfterReinject,
 			pReinjectInfo);
 			
 	switch (status) {
 	case STATUS_SUCCESS:
-		DbgPrint("Packet injected successfully.\n");
+		//DbgPrint("Packet injected successfully.\n");
 		break;
 	case STATUS_FWP_TCPIP_NOT_READY:
-		DbgPrint("Packet cannot be injected: TCPIP is not ready.\n");
+		DbgPrint("TrustRouter error: Packet cannot be injected: TCPIP is not ready.\n");
 		break;
 	case STATUS_FWP_INJECT_HANDLE_CLOSING:
-		DbgPrint("Packet cannot be injected: Handle is closing.\n");
+		DbgPrint("TrustRouter error: Packet cannot be injected: Handle is closing.\n");
 		break;
 	default:
-		DbgPrint("Packet cannot be injected: Return value is %0x\n", status);
+		DbgPrint("TrustRouter error: Packet cannot be injected: Return value is %0x\n", status);
 		break;
 	}	
 }
 
-VOID NTAPI completionFn(
+VOID NTAPI cleanUpAfterReinject(
 	VOID *context,
 	NET_BUFFER_LIST *netBufferList,
 	BOOLEAN dispatchLevel) 
@@ -441,37 +445,38 @@ VOID NTAPI completionFn(
 	RemoveEntryList(&(pReinjectInfo->listEntry));	
 	ExReleaseFastMutex(&gListMutex);
 
-	ExFreePoolWithTag(pReinjectInfo, "denS");
+	ExFreePoolWithTag(pReinjectInfo, 'denS');
 	
 	switch (netBufferList->Status) {
 	case NDIS_STATUS_SUCCESS:
-		DbgPrint("Net Buffer injection was successful.\n");
+		//DbgPrint("Net Buffer injection was successful.\n");
 		break;
 	case NDIS_STATUS_INVALID_LENGTH:
-		DbgPrint("Net Buffer injection failed: Invalid Length.\n");
+		DbgPrint("TrustRouter error: Net Buffer injection failed: Invalid Length.\n");
 		break;
 	case NDIS_STATUS_RESOURCES:
-		DbgPrint("Net Buffer injection failed: Insufficent ressources.\n");
+		DbgPrint("TrustRouter error: Net Buffer injection failed: Insufficent ressources.\n");
 		break;
 	case NDIS_STATUS_FAILURE:
-		DbgPrint("Net Buffer injection failed for some reason.\n");
+		DbgPrint("TrustRouter error: Net Buffer injection failed for some reason.\n");
 		break;
 	case NDIS_STATUS_SEND_ABORTED:
-		DbgPrint("Net Buffer injection was aborted.\n");
+		DbgPrint("TrustRouter error: Net Buffer injection was aborted.\n");
 		break;
 	case NDIS_STATUS_RESET_IN_PROGRESS:
-		DbgPrint("Net Buffer injection was resetted.\n");
+		DbgPrint("TrustRouter error: Net Buffer injection was resetted.\n");
 		break;
 	case NDIS_STATUS_PAUSED:
-		DbgPrint("Net Buffer injection was paused.\n");
+		DbgPrint("TrustRouter error: Net Buffer injection was paused.\n");
 		break;
 	default:
-		DbgPrint("Net Buffer status not recognized: %0x\n", netBufferList->Status);
+		DbgPrint("TrustRouter error: Net Buffer injection status not recognized: %0x\n", netBufferList->Status);
 		break;
 	}
 	
 	FwpsFreeCloneNetBufferList0(netBufferList, 0);
 }
+
 
 NTSTATUS NTAPI TrustrtrNotify(
 	IN FWPS_CALLOUT_NOTIFY_TYPE notifyType,
@@ -482,12 +487,10 @@ NTSTATUS NTAPI TrustrtrNotify(
 }
 
 VOID DriverUnload(IN PDRIVER_OBJECT pDriverObject)
-{
-	
+{	
 	FwpsCalloutUnregisterByKey0(&TRUSTRTR_CALLOUT_DRIVER_GUID);
 	
 	IoDeleteSymbolicLink(&gSymLinkName);
 	
-	IoDeleteDevice(pDriverObject->DeviceObject);
-		
+	IoDeleteDevice(pDriverObject->DeviceObject);		
 }
