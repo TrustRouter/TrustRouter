@@ -9,5 +9,7 @@ project.xcworkspace/
 
 # Windows
 /client/kernelmode/Windows/objchk_win7_x86
-/client/kernelmode/Windows/bin/i386/send_callout.sys
-/client/kernelmode/Windows/bin/i386/send_callout.pdb
+/client/kernelmode/Windows/bin/i386/*.sys
+/client/kernelmode/Windows/bin/i386/*.pdb
+/client/kernelmode/Windows/*.obj
+/client/kernelmode/Windows/*.exe

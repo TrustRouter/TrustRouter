@@ -1,23 +1,23 @@
 [Files]
 ; copy the TrustRouter module incl. security sub-module
-Source: "usermode\trustrouter\*"; DestDir: "{app}\python\Lib\site-packages\trustrouter"
-Source: "usermode\trustrouter\security\*"; DestDir: "{app}\python\Lib\site-packages\trustrouter\security"; Flags: recursesubdirs
-Source: "usermode\service.py"; DestDir: "{app}\bin"
-Source: "usermode\winservice.py"; DestDir: "{app}\bin"
+Source: "..\..\usermode\trustrouter\*"; DestDir: "{app}\python\Lib\site-packages\trustrouter"
+Source: "..\..\usermode\trustrouter\security\*"; DestDir: "{app}\python\Lib\site-packages\trustrouter\security"; Flags: recursesubdirs
+Source: "..\..\usermode\service.py"; DestDir: "{app}\bin"
+Source: "..\..\usermode\winservice.py"; DestDir: "{app}\bin"
 
 ; copy the callout driver
-Source: kernelmode\windows\bin\i386\trustrtr.inf; DestDir: {app}\driver
-Source: kernelmode\windows\bin\i386\trustrtr.sys; DestDir: {app}\driver
+Source: ..\..\kernelmode\windows\bin\i386\trustrtr.inf; DestDir: {app}\driver
+Source: ..\..\kernelmode\windows\bin\i386\trustrtr.sys; DestDir: {app}\driver
 
 ; copy program to install windows filtering platform drivers
-Source: "kernelmode\windows\installWFPFilter.exe"; DestDir: {app}\driver; Flags: deleteafterinstall
+Source: "..\..\kernelmode\windows\installWFPFilter.exe"; DestDir: {app}\driver; Flags: deleteafterinstall
 
 ; copy Python32 installation directory and the .dlls needed by PyWin
-Source: "packaging\Windows\Python32\*"; DestDir: {app}\python; Flags: recursesubdirs
-Source: "packaging\Windows\pywinddls\*"; DestDir: {sys}
+Source: "Python32\*"; DestDir: {app}\python; Flags: recursesubdirs
+Source: "pywinddls\*"; DestDir: {sys}
 
 ; the visual c++ runtime is needed by the security module
-Source: "packaging\Windows\vcredist_x86.exe"; DestDir: {app}; Flags: deleteafterinstall
+Source: "vcredist_x86.exe"; DestDir: {app}; Flags: deleteafterinstall
 
 [Run]
 Filename: {app}\vcredist_x86.exe; Parameters: /q /norestart; StatusMsg: "Installing Visual C++ Runtime..."
