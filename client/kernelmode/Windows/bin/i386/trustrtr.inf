@@ -1,6 +1,6 @@
 [Version]
 signature   =   "$Windows NT$"
-Provider 	=   %TrustRouterAuthor%
+Provider 	=   %TrustRouter%
 DriverVer   =   01/07/2004,VER_P5000.2
 
 [DestinationDirs]
@@ -33,7 +33,7 @@ LoadOrderGroup	 = Extended Base        ;Needs to load before tcpip.sys
 trustrtr.sys,,,0x00000040   ; COPYFLG_OVERWRITE_OLDER_ONLY
 
 [Strings]
-TrustRouterAuthor       = "Thomas Zimmermann"
+TrustRouter       = "TrustRouter"
 TrustRouterServiceDesc  = "TrustRouter Network Filter Driver"
 TrustRouterServiceName  = "trustrtr"
 TrustRouterRegistry     = "system\currentcontrolset\services\trustrtr"
