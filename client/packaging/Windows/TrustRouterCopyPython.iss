@@ -32,18 +32,22 @@ Filename: {app}\python\python.exe; Parameters: """{app}\bin\service.py"""
 ;Filename: {sys}\rundll32.exe; Parameters: setupapi,InstallHinfSection DefaultInstall 128 {app}\driver\trustrtr.inf; StatusMsg: "Installing Callout Driver..."; Flags: nowait
 
 [UninstallRun]
-Filename: {sys}\sc.exe; Parameters: "stop TrustRouter"
-Filename: {sys}\sc.exe; Parameters: "delete TrustRouter"
+; Service stopping makes now sense atm because filter + callout driver continue
+; filtering after service is stopped. 
+
+;Filename: {sys}\sc.exe; Parameters: "stop TrustRouter"
+;Filename: {sys}\sc.exe; Parameters: "delete TrustRouter"
 
 [Setup]
 AppCopyright=BSD
 AppName=TrustRouter
 AppVerName=TrustRouter 1.0
-;AppPublisher=My Company, Inc.
+AppPublisher=TrustRouter
 AppPublisherURL=http://www.TrustRouter.net/
 DefaultDirName={pf}\TrustRouter
 OutputBaseFilename=TrustRouter10x86
 ArchitecturesAllowed=x86
+Uninstallable=no
 ;AlwaysRestart=yes
 
 [Code]
