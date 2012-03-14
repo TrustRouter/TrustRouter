@@ -187,47 +187,77 @@ struct HomeAgentInfo {
 };
 
 /* SEND structures and options (see RFC 3971) */
-//TODO this should be defined in icmp6.h
+// TODO this should be defined in icmp6.h
 #define ND_CERTIFICATION_PATH_SOLICIT	148
-#define ND_CERTIFICATION_PATH_ADVERT	149
 
 struct nd_certification_path_solicit      /* certification path solicitation */
 {
-    struct icmp6_hdr  nd_certification_path_hdr;
+    struct icmp6_hdr  nd_cps_hdr;
     /* could be followed by options */
 };
-
-#define nd_cps_type               nd_certification_path_hdr.icmp6_type
-#define nd_cps_code               nd_certification_path_hdr.icmp6_code
-#define nd_cps_cksum              nd_certification_path_hdr.icmp6_cksum
-#define nd_cps_identifier         nd_certification_path_hdr.icmp6_data16[0]
-#define nd_cps_component          nd_certification_path_hdr.icmp6_data16[1]
+#define nd_cps_type               nd_cps_hdr.icmp6_type
+#define nd_cps_code               nd_cps_hdr.icmp6_code
+#define nd_cps_cksum              nd_cps_hdr.icmp6_cksum
+#define nd_cps_identifier         nd_cps_hdr.icmp6_data16[0]
+#define nd_cps_component          nd_cps_hdr.icmp6_data16[1]
 #define ND_CPS_COMPONENT_ALL      65535
-#define ND_OPT_PADDING_BOUNDARY   8 /* RFC 4861 4.6 says, ND options are padded to the next 64bit boundary */
-#define ND_OPT_TRUST_ANCHOR     15
 
-struct nd_opt_trust_anchor
-{
-	uint8_t			type;					// 1 byte type
-	uint8_t			length;					// 1 byte length
-	uint8_t			nd_opt_ta_name_type;	// 1 byte name type
-	uint8_t			nd_opt_ta_pad_length;	// 1 byte padding length
-	unsigned char 	*nd_opt_ta_name;		// variable length name
+#define ND_CERTIFICATION_PATH_ADVERT	149
+
+struct nd_certification_path_advert {
+	struct icmp6_hdr	nd_cpa_hdr;
+	uint16_t			nd_cpa_component;
+	uint16_t			nd_cpa_reserved;
+	/* could be followed by options */
+};
+#define nd_cpa_type				nd_cpa_hdr.icmp6_type
+#define nd_cpa_code				nd_cpa_hdr.icmp6_code
+#define nd_cpa_cksum			nd_cpa_hdr.icmp6_cksum
+#define nd_cpa_identifier		nd_cpa_hdr.icmp6_data16[0]
+#define nd_cpa_all_components	nd_cpa_hdr.icmp6_data16[1]
+
+#define ND_OPT_PADDING_BOUNDARY	8 /* RFC 4861 4.6 says, ND options are padded to the next 64bit boundary */
+
+#define ND_OPT_TRUST_ANCHOR		15
+struct nd_opt_trust_anchor {
+	struct nd_opt_hdr	nd_opt_ta_hdr;			// 1 byte type and 1 byte length
+	uint8_t				nd_opt_ta_name_type;	// 1 byte name type
+	uint8_t				nd_opt_ta_pad_length;	// 1 byte padding length
+	unsigned char 		*nd_opt_ta_name;		// variable length name
 	/* my be followed by padding */
 };
+#define nd_opt_ta_type	nd_opt_ta_hdr.nd_opt_type
+#define nd_opt_ta_len	nd_opt_ta_hdr.nd_opt_len
 
-#define ND_OPT_SIGNATURE	12
+struct trust_anchor {
+	struct trust_anchor *next;
+	struct nd_opt_trust_anchor *data;
+};
+
+#define ND_OPT_CERTIFICATE		16
+struct nd_opt_certificate {
+	struct nd_opt_hdr	nd_opt_cert_hdr;			// 1 byte type and 1 byte length
+	uint8_t				nd_opt_cert_cert_type;		// 1 byte cert type
+	uint8_t				nd_opt_cert_reserved;		// 1 byte reserved
+	unsigned char		*nd_opt_cert_certificate;	// variable length certificate
+	/* my be followed by padding */
+};
+#define nd_opt_cert_type	nd_opt_cert_hdr.nd_opt_type
+#define nd_opt_cert_len		nd_opt_cert_hdr.nd_opt_len
+
 #define ASN1_BUFFER_SIZE	1024
-#define KEY_HASH_SIZE 16
-#define IPV6_ADDRESS_SIZE 16
+#define KEY_HASH_SIZE		16
+#define IPV6_ADDRESS_SIZE	16
+#define ND_OPT_SIGNATURE	12
 struct nd_opt_signature {
-	uint8_t			type;						// 1 byte type
-	uint8_t			length;						// 1 byte length
-	uint16_t		reserved;					// 2 byte reserved
-	unsigned char	key_hash[KEY_HASH_SIZE];	// 16 byte key-hash (128 most significant bits of SHA-1 hash of the senders public key)
-	unsigned char	*signature;					// variable length PKCS#1 v1.5 signature
+	struct nd_opt_hdr	nd_opt_sig_hdr;							// 1 byte type and 1 byte length
+	uint16_t			nd_opt_sig_reserved;					// 2 byte reserved
+	unsigned char		nd_opt_sig_key_hash[KEY_HASH_SIZE];		// 16 byte key-hash (128 most significant bits of SHA-1 hash of the senders public key)
+	unsigned char		*nd_opt_sig_signature;					// variable length PKCS#1 v1.5 signature
 	/* may be followed by padding */
 };
+#define nd_opt_sig_type	nd_opt_sig_hdr.nd_opt_type
+#define nd_opt_sig_len	nd_opt_sig_hdr.nd_opt_len
 
 /* gram.y */
 int yyparse(void);
@@ -273,7 +303,7 @@ int open_icmpv6_socket(void);
 /* send.c */
 int send_ra(struct Interface *iface, struct in6_addr *dest);
 int send_ra_forall(struct Interface *iface, struct in6_addr *dest);
-int send_cpa(struct Interface *iface, struct in6_addr *dest);
+int send_cpa(struct Interface *iface, struct in6_addr *dest, struct trust_anchor *trustAnchors);
 
 /* process.c */
 void process(struct Interface *, unsigned char *, int,

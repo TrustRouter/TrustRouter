@@ -491,16 +491,16 @@ process_ra(struct Interface *iface, unsigned char *msg, int len,
 	}
 }
 
+/*
+ * Processes an incoming Certification Path Solicitation message by answering
+ * with a corresponding Certification Path Advertisement.
+ */
 static void
 process_cps(struct Interface *iface, unsigned char *msg, int len,
 	struct sockaddr_in6 *addr)
 {
 	uint8_t *opt_str;
-	struct nd_opt_trust_anchor *trustAnchors;
-	int numTrustAnchors = 0;
-
-	// TODO remove debug output
-	flog(LOG_ERR, "Processing CPS");
+	struct trust_anchor *trustAnchors = NULL;
 
 	/* validate the CPS */
 	len -= sizeof(struct nd_certification_path_solicit);
@@ -509,7 +509,7 @@ process_cps(struct Interface *iface, unsigned char *msg, int len,
 
 	while (len > 0)
 	{
-		int optlen, padlen;
+		int optlen;
 
 		if (len < 2)
 		{
@@ -518,7 +518,6 @@ process_cps(struct Interface *iface, unsigned char *msg, int len,
 		}
 
 		optlen = (opt_str[1] << 3); /* because multiplying with 8 would be too easy */
-		padlen = opt_str[3];
 
 		if (optlen == 0)
 		{
@@ -532,16 +531,32 @@ process_cps(struct Interface *iface, unsigned char *msg, int len,
 		}
 		if (opt_str[0] == ND_OPT_TRUST_ANCHOR) {
 			/* found a trust anchor option, extract the name of the trust anchor */
-			//FIXME allocate memory for the pointers
-			//trustAnchors[numTrustAnchors] = (struct nd_opt_trust_anchor*)opt_str;
-			//numTrustAnchors++;
+			struct trust_anchor *trustAnchor = trustAnchors;
+			do {
+				if (trustAnchor == NULL) {
+					trustAnchor = malloc(sizeof(struct trust_anchor));
+					trustAnchor->data = malloc(sizeof(struct nd_opt_trust_anchor));
+					trustAnchor->data->nd_opt_ta_type = opt_str[0];
+					trustAnchor->data->nd_opt_ta_len = opt_str[1];
+					trustAnchor->data->nd_opt_ta_name_type = opt_str[3];
+					trustAnchor->data->nd_opt_ta_pad_length = opt_str[4];
+					trustAnchor->data->nd_opt_ta_name = &opt_str[5];
+					trustAnchor->next = NULL;
+				}
+				trustAnchor = trustAnchor->next;
+			} while (trustAnchor != NULL);
 		}
 
 		len -= optlen;
 		opt_str += optlen;
 	}
 	/* answer the certification path solicitation */
-	// TODO implement me
+	if (memcmp(&addr->sin6_addr.__in6_u, &in6addr_any, sizeof(in6addr_any)) == 0) {
+		/* received cps from unspecified address, answer to all nodes */
+		send_cpa(iface, NULL, trustAnchors);
+	} else {
+		send_cpa(iface, &addr->sin6_addr, trustAnchors);
+	}
 }
 
 static int

@@ -522,7 +522,6 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		struct AdvPrefix *currentPrefix = iface->AdvPrefixList;
 		X509_PUBKEY *pubKey;
 		EVP_MD_CTX shaContext;
-		FILE *file;
 		unsigned char *asn1;
 		unsigned int asn1Length;
 		unsigned char *messageDigest;
@@ -530,6 +529,7 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		unsigned int nlen;
 		unsigned long cksum;
 		unsigned char *checksumBuffer;
+		unsigned char *checksumBufferIterator;
 		unsigned int checksumBufferDest;
 		unsigned char *rsaSignature;
 		unsigned int rsaSignatureLength;
@@ -541,9 +541,8 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 			flog(LOG_ERR, "No Certificates for the current prefix.");
 		}
 
-
-		signature.type = ND_OPT_SIGNATURE;
-		signature.reserved = 0;
+		signature.nd_opt_sig_type = ND_OPT_SIGNATURE;
+		signature.nd_opt_sig_reserved = 0;
 
 		/* get the most significant 128 bits of the SHA1 hash of the certificates private key structure */
 		pubKey = ((X509*)sk_value(&currentPrefix->CertificateChain->stack, sk_num(&currentPrefix->CertificateChain->stack) - 1))->cert_info->key;
@@ -553,7 +552,7 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 			flog(LOG_ERR, "Error while converting the public key structure to asn1");
 		}
 		// FIXME direct call of SHA1 is deprecated, use EVP_DigestInit instead
-		memcpy(signature.key_hash, SHA1(asn1, asn1Length, NULL), KEY_HASH_SIZE);
+		memcpy(signature.nd_opt_sig_key_hash, SHA1(asn1, asn1Length, NULL), KEY_HASH_SIZE);
 
 		/* we need to calculate the checksum of the icmp6 packet before we sign it,
 		 * currently it's 0 because the socket will calculate it automatically. */
@@ -574,12 +573,13 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 
 		/* calculate the checksum of the buffer and set it as the checksum of the router advertisement packet */
 		cksum = 0;
+		checksumBufferIterator = checksumBuffer;
 		while (checksumBufferDest > 1){
-			cksum += *(uint16_t*)checksumBuffer++;
+			cksum += *(uint16_t*)checksumBufferIterator++;
 			checksumBufferDest -= sizeof(uint16_t);
 		}
 		if (checksumBufferDest){
-			cksum += *checksumBuffer;
+			cksum += *checksumBufferIterator;
 		}
 		cksum = (cksum >> 16) + (cksum & 0xffff);
 		cksum += (cksum >> 16);
@@ -599,39 +599,40 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		rsaSignature = malloc(RSA_size(iface->PrivateKey));
 		RSA_sign(NID_sha1, messageDigest, messageDigestLength, rsaSignature, &rsaSignatureLength, iface->PrivateKey);
 
-		signature.signature = rsaSignature;
+		signature.nd_opt_sig_signature = rsaSignature;
 
 		/* set checksum back to 0 to not interfere with the automatic calculation of the socket */
 		radvert->nd_ra_cksum = 0;
 
-		fixedDataLength =	sizeof(signature.type) +
-							sizeof(signature.length) +
-							sizeof(signature.reserved) +
+		fixedDataLength =	sizeof(signature.nd_opt_sig_type) +
+							sizeof(signature.nd_opt_sig_len) +
+							sizeof(signature.nd_opt_sig_reserved) +
 							KEY_HASH_SIZE;
 
 		totalDataLength = fixedDataLength + RSA_size(iface->PrivateKey);
 
 		if (totalDataLength + (totalDataLength % 8) == 0) {
 			/* no padding to add */
-			signature.length = totalDataLength / 8;
+			signature.nd_opt_sig_len = totalDataLength / 8;
 		} else {
 			/* include length of the padding */
-			signature.length = (totalDataLength + (8 - (totalDataLength % 8))) / 8;
+			signature.nd_opt_sig_len = (totalDataLength + (8 - (totalDataLength % 8))) / 8;
 		}
 
 		buff_dest = len;
 		send_ra_inc_len(&len, totalDataLength);
 		memcpy(buff + buff_dest, &signature, fixedDataLength);
-		memcpy(buff + buff_dest + fixedDataLength, &(signature.signature), RSA_size(iface->PrivateKey));
+		memcpy(buff + buff_dest + fixedDataLength, &(signature.nd_opt_sig_signature), RSA_size(iface->PrivateKey));
 
 		/* add the padding */
 		buff_dest = len;
-		send_ra_inc_len(&len, (signature.length * 8) - totalDataLength);
-		memset(buff + buff_dest, 0, (signature.length * 8) - totalDataLength);
+		send_ra_inc_len(&len, (signature.nd_opt_sig_len * 8) - totalDataLength);
+		memset(buff + buff_dest, 0, (signature.nd_opt_sig_len * 8) - totalDataLength);
 
 		/* free the allocated memory */
 		free(messageDigest);
 		free(rsaSignature);
+		free(checksumBuffer);
 		//free(asn1); // FIXME gives a segmentation fault
 	}
 
@@ -675,10 +676,14 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 	return 0;
 }
 
-/* Sends a certification path advertisement message on the given interface
- * to the given IPv6 address. */
+/*
+ * Sends a certification path advertisement messages for the given trust anchors on the given interface
+ * to the given IPv6 address.
+ * If dest is NULL, the CPAs will be send to the all nodes multicast address
+ */
 int
-send_cpa(struct Interface *iface, struct in6_addr *dest){
+send_cpa(struct Interface *iface, struct in6_addr *dest, struct trust_anchor *trustAnchors) {
 	// TODO implement this method
+
 	return 0;
 }
