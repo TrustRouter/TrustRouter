@@ -90,12 +90,10 @@ open_icmpv6_socket(void)
 	 * setup ICMP filter
 	 */
 
-	//TODO: allow certificate path solicitation / advertisements to pass here
 	ICMP6_FILTER_SETBLOCKALL(&filter);
 	ICMP6_FILTER_SETPASS(ND_ROUTER_SOLICIT, &filter);
 	ICMP6_FILTER_SETPASS(ND_ROUTER_ADVERT, &filter);
 	ICMP6_FILTER_SETPASS(ND_CERTIFICATION_PATH_SOLICIT, &filter);
-	ICMP6_FILTER_SETPASS(ND_CERTIFICATION_PATH_ADVERT, &filter);
 
 	err = setsockopt(sock, IPPROTO_ICMPV6, ICMP6_FILTER, &filter,
 			 sizeof(filter));

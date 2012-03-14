@@ -21,6 +21,8 @@ static void process_rs(struct Interface *, unsigned char *msg,
 		       int len, struct sockaddr_in6 *);
 static void process_ra(struct Interface *, unsigned char *msg, int len,
 	struct sockaddr_in6 *);
+static void process_cps(struct Interface *, unsigned char *msg, int len,
+	struct sockaddr_in6 *);
 static int  addr_match(struct in6_addr *a1, struct in6_addr *a2,
 	int prefixlen);
 
@@ -59,7 +61,7 @@ process(struct Interface *ifacel, unsigned char *msg, int len,
 	    icmph->icmp6_type != ND_CERTIFICATION_PATH_ADVERT)
 	{
 		/*
-		 *	We just want to listen to RSs, RAs, CPSs and CPAs
+		 *	We just want to listen to RSs, RAs, CPSs
 		 */
 
 		flog(LOG_ERR, "icmpv6 filter failed");
@@ -89,16 +91,13 @@ process(struct Interface *ifacel, unsigned char *msg, int len,
 		}
 	}
 
-	if (icmph->icmp6_type == ND_CERTIFICATION_PATH_ADVERT)
-	{
-		//TODO verify the correctness of the CPA
-		dlog(LOG_DEBUG, 4, "Received CPA message");
-	}
-
 	if (icmph->icmp6_type == ND_CERTIFICATION_PATH_SOLICIT)
 	{
-		//TODO verify the correctness of the CPS
-		dlog(LOG_DEBUG, 4, "Received CPS message");
+		if (len < sizeof(struct nd_certification_path_solicit)) {
+			flog(LOG_WARNING, "received icmpv6 CPS packet with invalid length (%d) from %s",
+				len, addr_str);
+			return;
+		}
 	}
 
 	if (icmph->icmp6_code != 0)
@@ -152,6 +151,11 @@ process(struct Interface *ifacel, unsigned char *msg, int len,
 	{
 		dlog(LOG_DEBUG, 4, "received RA from %s", addr_str);
 		process_ra(iface, msg, len, addr);
+	}
+	else if (icmph->icmp6_type == ND_CERTIFICATION_PATH_SOLICIT)
+	{
+		dlog(LOG_DEBUG, 4, "received CPS from %s", addr_str);
+		process_cps(iface, msg, len, addr);
 	}
 }
 
@@ -485,6 +489,59 @@ process_ra(struct Interface *iface, unsigned char *msg, int len,
 		len -= optlen;
 		opt_str += optlen;
 	}
+}
+
+static void
+process_cps(struct Interface *iface, unsigned char *msg, int len,
+	struct sockaddr_in6 *addr)
+{
+	uint8_t *opt_str;
+	struct nd_opt_trust_anchor *trustAnchors;
+	int numTrustAnchors = 0;
+
+	// TODO remove debug output
+	flog(LOG_ERR, "Processing CPS");
+
+	/* validate the CPS */
+	len -= sizeof(struct nd_certification_path_solicit);
+
+	opt_str = (uint8_t *)(msg + sizeof(struct nd_certification_path_solicit));
+
+	while (len > 0)
+	{
+		int optlen, padlen;
+
+		if (len < 2)
+		{
+			flog(LOG_WARNING, "trailing garbage in CPS");
+			return;
+		}
+
+		optlen = (opt_str[1] << 3); /* because multiplying with 8 would be too easy */
+		padlen = opt_str[3];
+
+		if (optlen == 0)
+		{
+			flog(LOG_WARNING, "zero length option in CPS");
+			return;
+		}
+		else if (optlen > len)
+		{
+			flog(LOG_WARNING, "option length greater than total length in CPS");
+			return;
+		}
+		if (opt_str[0] == ND_OPT_TRUST_ANCHOR) {
+			/* found a trust anchor option, extract the name of the trust anchor */
+			//FIXME allocate memory for the pointers
+			//trustAnchors[numTrustAnchors] = (struct nd_opt_trust_anchor*)opt_str;
+			//numTrustAnchors++;
+		}
+
+		len -= optlen;
+		opt_str += optlen;
+	}
+	/* answer the certification path solicitation */
+	// TODO implement me
 }
 
 static int

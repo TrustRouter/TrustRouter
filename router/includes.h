@@ -70,10 +70,6 @@
 #include <netinet/ip6.h>
 #include <netinet/icmp6.h>
 
-//TODO this should be defined in icmp6.h
-#define ND_CERTIFICATION_PATH_SOLICIT	148
-#define ND_CERTIFICATION_PATH_ADVERT	149
-
 #include <arpa/inet.h>
 
 #include <sys/sysctl.h>

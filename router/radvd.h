@@ -186,17 +186,47 @@ struct HomeAgentInfo {
 	uint16_t		lifetime;
 };
 
-/* SEND Options (see RFC 3971) */
-#define SEND_OPT_SIGNATURE	12
+/* SEND structures and options (see RFC 3971) */
+//TODO this should be defined in icmp6.h
+#define ND_CERTIFICATION_PATH_SOLICIT	148
+#define ND_CERTIFICATION_PATH_ADVERT	149
+
+struct nd_certification_path_solicit      /* certification path solicitation */
+{
+    struct icmp6_hdr  nd_certification_path_hdr;
+    /* could be followed by options */
+};
+
+#define nd_cps_type               nd_certification_path_hdr.icmp6_type
+#define nd_cps_code               nd_certification_path_hdr.icmp6_code
+#define nd_cps_cksum              nd_certification_path_hdr.icmp6_cksum
+#define nd_cps_identifier         nd_certification_path_hdr.icmp6_data16[0]
+#define nd_cps_component          nd_certification_path_hdr.icmp6_data16[1]
+#define ND_CPS_COMPONENT_ALL      65535
+#define ND_OPT_PADDING_BOUNDARY   8 /* RFC 4861 4.6 says, ND options are padded to the next 64bit boundary */
+#define ND_OPT_TRUST_ANCHOR     15
+
+struct nd_opt_trust_anchor
+{
+	uint8_t			type;					// 1 byte type
+	uint8_t			length;					// 1 byte length
+	uint8_t			nd_opt_ta_name_type;	// 1 byte name type
+	uint8_t			nd_opt_ta_pad_length;	// 1 byte padding length
+	unsigned char 	*nd_opt_ta_name;		// variable length name
+	/* my be followed by padding */
+};
+
+#define ND_OPT_SIGNATURE	12
 #define ASN1_BUFFER_SIZE	1024
 #define KEY_HASH_SIZE 16
 #define IPV6_ADDRESS_SIZE 16
-struct SignatureOpt {
+struct nd_opt_signature {
 	uint8_t			type;						// 1 byte type
 	uint8_t			length;						// 1 byte length
 	uint16_t		reserved;					// 2 byte reserved
 	unsigned char	key_hash[KEY_HASH_SIZE];	// 16 byte key-hash (128 most significant bits of SHA-1 hash of the senders public key)
 	unsigned char	*signature;					// variable length PKCS#1 v1.5 signature
+	/* may be followed by padding */
 };
 
 /* gram.y */

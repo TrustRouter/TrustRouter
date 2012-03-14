@@ -513,11 +513,12 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 	 * multiple certificates each in turn authorizing the usage of a subset of the advertised prefixes.
 	 */
 
-	if (iface->PrivateKey != NULL) {
+	if (iface->PrivateKey != NULL && iface->AdvPrefixList) {
+		// FIXME what if we don't need to advertise prefixes but still need to send RAs...where to get the Certificates from?
 		/* magic sequence required by RFC 3971 */
 		const char cgaMessageTypeTag[] = {0x08,0x6f,0xca,0x5e,0x10,0xb2,0x00,0xc9,0x9c,0x8c,0xe0,0x01,0x64,0x27,0x7c,0x08};
 
-		struct SignatureOpt signature;
+		struct nd_opt_signature signature;
 		struct AdvPrefix *currentPrefix = iface->AdvPrefixList;
 		X509_PUBKEY *pubKey;
 		EVP_MD_CTX shaContext;
@@ -526,6 +527,10 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		unsigned int asn1Length;
 		unsigned char *messageDigest;
 		unsigned int messageDigestLength;
+		unsigned int nlen;
+		unsigned long cksum;
+		unsigned char *checksumBuffer;
+		unsigned int checksumBufferDest;
 		unsigned char *rsaSignature;
 		unsigned int rsaSignatureLength;
 		unsigned int fixedDataLength;
@@ -536,7 +541,8 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 			flog(LOG_ERR, "No Certificates for the current prefix.");
 		}
 
-		signature.type = SEND_OPT_SIGNATURE;
+
+		signature.type = ND_OPT_SIGNATURE;
 		signature.reserved = 0;
 
 		/* get the most significant 128 bits of the SHA1 hash of the certificates private key structure */
@@ -549,12 +555,43 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		// FIXME direct call of SHA1 is deprecated, use EVP_DigestInit instead
 		memcpy(signature.key_hash, SHA1(asn1, asn1Length, NULL), KEY_HASH_SIZE);
 
+		/* we need to calculate the checksum of the icmp6 packet before we sign it,
+		 * currently it's 0 because the socket will calculate it automatically. */
+		checksumBuffer = malloc(40 + len); /* 40 byte for the ipv6 pseudo header and the length of the whole icmp packet without the signature option */
+		memcpy(checksumBuffer, &iface->if_addr.__in6_u, IPV6_ADDRESS_SIZE);
+		checksumBufferDest = IPV6_ADDRESS_SIZE;
+		memcpy(checksumBuffer + checksumBufferDest, &dest->__in6_u, IPV6_ADDRESS_SIZE);
+		checksumBufferDest += IPV6_ADDRESS_SIZE;
+		nlen = htonl(len);
+		memcpy(checksumBuffer + checksumBufferDest, &nlen, 4); /* 4 byte payload length */
+		checksumBufferDest += 4;
+		memset(checksumBuffer + checksumBufferDest, 0, 3); /* 3 byte checksum set to 0 */
+		checksumBufferDest += 3;
+		memset(checksumBuffer + checksumBufferDest, IPPROTO_ICMPV6, 1); /* 1 byte next header field */
+		checksumBufferDest += 1;
+		memcpy(checksumBuffer + checksumBufferDest, buff, len); /* append the whole icmp packet without the signature */
+		checksumBufferDest += len;
+
+		/* calculate the checksum of the buffer and set it as the checksum of the router advertisement packet */
+		cksum = 0;
+		while (checksumBufferDest > 1){
+			cksum += *(uint16_t*)checksumBuffer++;
+			checksumBufferDest -= sizeof(uint16_t);
+		}
+		if (checksumBufferDest){
+			cksum += *checksumBuffer;
+		}
+		cksum = (cksum >> 16) + (cksum & 0xffff);
+		cksum += (cksum >> 16);
+		radvert->nd_ra_cksum = (uint16_t)(~cksum);
+
 		/* compute the signature */
 		EVP_DigestInit(&shaContext, EVP_sha1());
 		EVP_DigestUpdate(&shaContext, cgaMessageTypeTag, 16);
 		EVP_DigestUpdate(&shaContext, &iface->if_addr.__in6_u, IPV6_ADDRESS_SIZE);
 		EVP_DigestUpdate(&shaContext, &dest->__in6_u, IPV6_ADDRESS_SIZE);
-		/* at this point, the buffer contains the complete ICMP header and all options except the signature */
+		/* at this point, the buffer contains the complete
+		 * ICMP header and all options except the signature */
 		EVP_DigestUpdate(&shaContext, buff, len);
 		messageDigest = malloc(EVP_MAX_MD_SIZE);
 		EVP_DigestFinal(&shaContext, messageDigest, &messageDigestLength);
@@ -563,6 +600,10 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		RSA_sign(NID_sha1, messageDigest, messageDigestLength, rsaSignature, &rsaSignatureLength, iface->PrivateKey);
 
 		signature.signature = rsaSignature;
+
+		/* set checksum back to 0 to not interfere with the automatic calculation of the socket */
+		radvert->nd_ra_cksum = 0;
+
 		fixedDataLength =	sizeof(signature.type) +
 							sizeof(signature.length) +
 							sizeof(signature.reserved) +
@@ -592,7 +633,6 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		free(messageDigest);
 		free(rsaSignature);
 		//free(asn1); // FIXME gives a segmentation fault
-		flog(LOG_INFO, "Signature appended");
 	}
 
 	iov.iov_len  = len;
