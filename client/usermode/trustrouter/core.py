@@ -11,6 +11,10 @@ from trustrouter import certificates
 # see RFC 3971
 CGA_MESSAGE_TYPE_TAG = b"\x08\x6F\xCA\x5E\x10\xB2\x00\xC9\x9C\x8C\xE0\x01\x64\x27\x7C\x08"
 
+# Maximum time the certificate retrieval process may last, in seconds.
+# See RFC 3971, section 10.1 Constants:
+CPS_RETRY_MAX = 15
+
 class RAVerifier(object):
 
     def __init__(self, log_fn=print, user_config=None):
@@ -59,7 +63,7 @@ class RAVerifier(object):
         sock.settimeout(2)
         starttime = time.time()
 
-        while time.time() - starttime < 15:
+        while time.time() - starttime < CPS_RETRY_MAX:
             cpa = self._receive_cpa(sock, scopeid, identifier)
             
             if cpa is None:
