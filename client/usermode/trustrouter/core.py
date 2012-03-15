@@ -8,7 +8,7 @@ from trustrouter import packet
 from trustrouter import security
 from trustrouter import certificates
 
-# see RFC 3971
+# see RFC 3971, section 5.2, "Digital Signature"
 CGA_MESSAGE_TYPE_TAG = b"\x08\x6F\xCA\x5E\x10\xB2\x00\xC9\x9C\x8C\xE0\x01\x64\x27\x7C\x08"
 
 class RAVerifier(object):
@@ -19,7 +19,7 @@ class RAVerifier(object):
         # add trust anchors that ship with TrustRouter
         self.config.trust_anchors.extend(certificates.trust_anchors)
 
-        self._secured_routers = []
+        self._trusted_routers = []
         self._secured_prefixes = []
 
     def verify(self, data, scopeid):
@@ -194,17 +194,17 @@ class RAVerifier(object):
     def _accept_unsigned_ra(self, ra, prefix_option):
         if (self.config.mode == config.MODE_ONLY_SEND or
                 (self.config.mode == config.MODE_NO_UNSECURED_AFTER_SECURED and
-                    len(self._secured_routers) > 0)):
+                    len(self._trusted_routers) > 0)):
             return False
         # mixed mode
         prefix = (prefix_option["prefix"], prefix_option["prefix_length"])
-        return (ra["source_addr"] not in self._secured_routers and 
+        return (ra["source_addr"] not in self._trusted_routers and 
                 prefix not in self._secured_prefixes)
 
 
     def _add_to_secured_list(self, ra, prefix_option):
-        if ra["source_addr"] not in self._secured_routers:
-            self._secured_routers.append(ra["source_addr"])
+        if ra["source_addr"] not in self._trusted_routers:
+            self._trusted_routers.append(ra["source_addr"])
         prefix = (prefix_option["prefix"], prefix_option["prefix_length"])
         if prefix not in self._secured_prefixes:
             self._secured_prefixes.append(prefix)
