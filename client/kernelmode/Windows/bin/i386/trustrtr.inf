@@ -1,0 +1,41 @@
+[Version]
+signature   =   "$Windows NT$"
+Provider 	=   %TrustRouter%
+DriverVer   =   01/07/2004,VER_P5000.2
+
+[DestinationDirs]
+DefaultDestDir	        = 12
+TrustRouter.DriverFiles = 12 			;%windir%\System32\drivers
+
+[DefaultInstall]
+OptionDesc          = %TrustRouterServiceDesc%
+CopyFiles           = TrustRouter.DriverFiles
+
+[DefaultInstall.Services]
+AddService          = %TrustRouterServiceName%,,TrustRouter.Service
+
+[DefaultUninstall]
+DelFiles   = TrustRouter.DriverFiles
+
+[DefaultUninstall.Services]
+DelService = %TrustRouterServiceName%,0x200		; Flags note to stop service first
+
+[TrustRouter.Service]
+DisplayName      = %TrustRouterServiceName%
+Description      = %TrustRouterServiceDesc%
+ServiceBinary    = %12%\trustrtr.sys  	;%windir%\system32\drivers\trustrtr.sys
+ServiceType      = 1					;SERVICE_KERNEL_DRIVER
+StartType        = 0					;SERVICE_BOOT_START
+ErrorControl     = 1					;SERVICE_ERROR_NORMAL
+LoadOrderGroup	 = Extended Base        ;Needs to load before tcpip.sys
+
+[TrustRouter.DriverFiles]
+trustrtr.sys,,,0x00000040   ; COPYFLG_OVERWRITE_OLDER_ONLY
+
+[Strings]
+TrustRouter       = "TrustRouter"
+TrustRouterServiceDesc  = "TrustRouter Network Filter Driver"
+TrustRouterServiceName  = "trustrtr"
+TrustRouterRegistry     = "system\currentcontrolset\services\trustrtr"
+
+
