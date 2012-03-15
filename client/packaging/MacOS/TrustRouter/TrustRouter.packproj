@@ -867,6 +867,22 @@ wrappers for lots of Mac OS X API's.
 														<key>UID</key>
 														<integer>0</integer>
 													</dict>
+													<dict>
+														<key>Children</key>
+														<array/>
+														<key>GID</key>
+														<integer>0</integer>
+														<key>Path</key>
+														<string>../../../usermode/utils</string>
+														<key>Path Type</key>
+														<integer>2</integer>
+														<key>Privileges</key>
+														<integer>493</integer>
+														<key>Type</key>
+														<integer>3</integer>
+														<key>UID</key>
+														<integer>0</integer>
+													</dict>
 												</array>
 												<key>GID</key>
 												<integer>0</integer>
