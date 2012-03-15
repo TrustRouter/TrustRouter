@@ -514,6 +514,7 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 	 */
 
 	if (iface->PrivateKey != NULL && iface->AdvPrefixList) {
+		// TODO handle all possible malloc failures
 		// FIXME what if we don't need to advertise prefixes but still need to send RAs...where to get the Certificates from?
 		/* magic sequence required by RFC 3971 */
 		const char cgaMessageTypeTag[] = {0x08,0x6f,0xca,0x5e,0x10,0xb2,0x00,0xc9,0x9c,0x8c,0xe0,0x01,0x64,0x27,0x7c,0x08};
@@ -521,9 +522,12 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		struct nd_opt_signature signature;
 		struct AdvPrefix *currentPrefix = iface->AdvPrefixList;
 		X509_PUBKEY *pubKey;
-		EVP_MD_CTX shaContext;
+		EVP_MD_CTX keyHashContext;
+		unsigned char *keyHash;
+		unsigned int keyHashLength;
 		unsigned char *asn1;
 		unsigned int asn1Length;
+		EVP_MD_CTX shaContext;
 		unsigned char *messageDigest;
 		unsigned int messageDigestLength;
 		unsigned int nlen;
@@ -536,7 +540,6 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		unsigned int fixedDataLength;
 		unsigned int totalDataLength;
 
-		// FIXME the configuration file processing should enforce that all prefixes have a certification path set
 		if (sk_num(&currentPrefix->CertificateChain->stack) == 0) {
 			flog(LOG_ERR, "No Certificates for the current prefix.");
 		}
@@ -546,13 +549,20 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 
 		/* get the most significant 128 bits of the SHA1 hash of the certificates private key structure */
 		pubKey = ((X509*)sk_value(&currentPrefix->CertificateChain->stack, sk_num(&currentPrefix->CertificateChain->stack) - 1))->cert_info->key;
-		asn1 = malloc(ASN1_BUFFER_SIZE);
+		asn1 = NULL;//malloc(ASN1_BUFFER_SIZE);
 		asn1Length = i2d_X509_PUBKEY(pubKey, &asn1);
 		if(asn1Length <= 0) {
 			flog(LOG_ERR, "Error while converting the public key structure to asn1");
 		}
-		// FIXME direct call of SHA1 is deprecated, use EVP_DigestInit instead
-		memcpy(signature.nd_opt_sig_key_hash, SHA1(asn1, asn1Length, NULL), KEY_HASH_SIZE);
+
+		/* calculate the key hash */
+		EVP_MD_CTX_init(&keyHashContext);
+		EVP_DigestInit_ex(&keyHashContext, EVP_sha1(), NULL);
+		EVP_DigestUpdate(&keyHashContext, asn1, asn1Length);
+		keyHash = malloc(EVP_MAX_MD_SIZE);
+		EVP_DigestFinal_ex(&keyHashContext, keyHash, &keyHashLength);
+		EVP_MD_CTX_cleanup(&keyHashContext);
+		memcpy(signature.nd_opt_sig_key_hash, keyHash, KEY_HASH_SIZE);
 
 		/* we need to calculate the checksum of the icmp6 packet before we sign it,
 		 * currently it's 0 because the socket will calculate it automatically. */
@@ -586,7 +596,8 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		radvert->nd_ra_cksum = (uint16_t)(~cksum);
 
 		/* compute the signature */
-		EVP_DigestInit(&shaContext, EVP_sha1());
+		EVP_MD_CTX_init(&shaContext);
+		EVP_DigestInit_ex(&shaContext, EVP_sha1(), NULL);
 		EVP_DigestUpdate(&shaContext, cgaMessageTypeTag, 16);
 		EVP_DigestUpdate(&shaContext, &iface->if_addr.__in6_u, IPV6_ADDRESS_SIZE);
 		EVP_DigestUpdate(&shaContext, &dest->__in6_u, IPV6_ADDRESS_SIZE);
@@ -594,7 +605,8 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		 * ICMP header and all options except the signature */
 		EVP_DigestUpdate(&shaContext, buff, len);
 		messageDigest = malloc(EVP_MAX_MD_SIZE);
-		EVP_DigestFinal(&shaContext, messageDigest, &messageDigestLength);
+		EVP_DigestFinal_ex(&shaContext, messageDigest, &messageDigestLength);
+		EVP_MD_CTX_cleanup(&shaContext);
 
 		rsaSignature = malloc(RSA_size(iface->PrivateKey));
 		RSA_sign(NID_sha1, messageDigest, messageDigestLength, rsaSignature, &rsaSignatureLength, iface->PrivateKey);
@@ -633,7 +645,8 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		free(messageDigest);
 		free(rsaSignature);
 		free(checksumBuffer);
-		//free(asn1); // FIXME gives a segmentation fault
+		free(asn1);
+		free(keyHash);
 	}
 
 	iov.iov_len  = len;
