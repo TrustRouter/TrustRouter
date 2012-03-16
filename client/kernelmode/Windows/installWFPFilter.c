@@ -15,41 +15,9 @@ DEFINE_GUID(SEND_CALLOUT_DRIVER,
 DEFINE_GUID(ICMPV6_RA_FILTERING_SUBLAYER, 
 0xe78a151c, 0xe2fc, 0x44b4, 0x80, 0x62, 0xf9, 0x94, 0x9a, 0x8f, 0x69, 0x1b);
 
-void install_callout_driver() {
-    HANDLE hSCManager;
-    HANDLE hService;
 
-    hSCManager = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE);
-    
-    if (hSCManager != NULL) {
-        printf("Create Service\n");
-        hService = CreateService(hSCManager, "trustrtr", 
-                                 "TrustRouter Callout Driver", 
-                                  SERVICE_START | DELETE | SERVICE_STOP, 
-                                  SERVICE_KERNEL_DRIVER,
-                                  SERVICE_BOOT_START, 
-                                  SERVICE_ERROR_NORMAL, 
-                                  "\\bin\\i386\\trustrtr.sys",          // Binary path name
-                                  "Extended Base",  // Load order group
-                                  NULL, NULL, NULL, NULL);
-                                  
-        if (!hService) {
-            printf("Create Service did not work, trying open.\n");
-            hService = OpenService(hSCManager, "trustrtr", 
-                       SERVICE_START | DELETE | SERVICE_STOP);
-        }
-        if (hService != NULL) {
-            printf("Start Service\n");
-
-            StartService(hService, 0, NULL);
-
-            CloseServiceHandle(hService);            
-        } else {
-            printf("CreateService failed: %d\n", GetLastError());
-        }
-
-        CloseServiceHandle(hSCManager);
-    }
+int main(int argc, char **args) {    
+    install_wfp_filters();		    
 }
 
 void install_wfp_filters() {
@@ -181,12 +149,4 @@ void install_wfp_filters() {
 	} else {
 		printf("Persistent time filter add fail: returns %0x\n", status);
 	}
-}
-
-int main(int argc, char **args) {
-
-    //install_callout_driver();
-    
-    install_wfp_filters();		
-    
 }
