@@ -6,9 +6,7 @@ TrustRouter will be available as a one-click solution that can be installed on c
 
 Downloads
 ---------
-
-Work is still in progress… Downloads are coming soon. Stay tuned.
-
+Please refer to the [Download](https://github.com/TrustRouter/TrustRouter/downloads) section for the most recent version of TrustRouter for your operating systems.
 
 The Team
 --------
