@@ -265,8 +265,6 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
-	/* TODO: check completeness of configuration */
-
 	if (configtest) {
 		fprintf(stderr, "Syntax OK\n");
 		exit(0);
@@ -533,42 +531,49 @@ config_interface(void)
 void
 config_certificates(struct Interface *iface)
 {
-	struct AdvPrefix *prefix;
-	for(prefix = iface->AdvPrefixList; prefix; prefix = prefix->next) {
+	struct CertificationPath *certPath;
+	for(certPath = iface->certificationPathList; certPath; certPath = certPath->next) {
+		int componentCounter, stackSize;
 		STACK_OF(X509_INFO) *infoStack = NULL;
 		STACK_OF(X509) *certificateStack = NULL;
 		BIO *bio = NULL;
-		if (prefix->IsPathToFileFlag) {
-			/*
-			 * Read a certificate chain from a single file
-			 * We assume the certificates in the file are ordered according to the certificate chain,
-			 * beginning with the trust anchor and ending with the router certificate.
-			 */
-			if(!(certificateStack = sk_X509_new_null())) {
-				flog(LOG_ERR, "Error creating new certificate stack");
-				exit(1);
-			}
-			if(!(bio = BIO_new_file(prefix->PathToCertificates, "r"))) {
-				flog(LOG_ERR, "Error creating new BIO file from PathToCertificates");
-				exit(1);
-			}
-			if(!(infoStack = PEM_X509_INFO_read_bio(bio, NULL, NULL, NULL))) {
-				flog(LOG_ERR, "Error reading BIO file");
-				exit(1);
-			}
-			while(sk_X509_INFO_num(infoStack)) {
-				X509_INFO *certificateInfo = sk_X509_INFO_shift(infoStack);
-				if(certificateInfo->x509 != NULL){
-					sk_X509_push(certificateStack, certificateInfo->x509);
-					certificateInfo->x509 = NULL;
-				}
-				X509_INFO_free(certificateInfo);
-			}
-			prefix->CertificateChain = certificateStack;
-		} else {
-			/* read a certificate chain from a folder with files for each certificate */
-			// TODO implement this
+		/*
+		 * Read a certificate chain from a single file.
+		 * We assume the certificates in the file are ordered according to the certificate chain,
+		 * beginning with the trust anchor and ending with the router certificate.
+		 */
+		if(!(certificateStack = sk_X509_new_null())) {
+			flog(LOG_ERR, "Error creating new certificate stack");
+			exit(1);
 		}
+		if(!(bio = BIO_new_file(certPath->pathToCertificates, "r"))) {
+			flog(LOG_ERR, "Error creating new BIO file from PathToCertificates");
+			exit(1);
+		}
+		if(!(infoStack = PEM_X509_INFO_read_bio(bio, NULL, NULL, NULL))) {
+			flog(LOG_ERR, "Error reading BIO file");
+			exit(1);
+		}
+		stackSize = sk_X509_INFO_num(infoStack);
+		for (componentCounter = stackSize; componentCounter > 0; componentCounter--) {
+			X509_INFO *certificateInfo = sk_X509_INFO_shift(infoStack);
+			if(certificateInfo->x509 != NULL){
+				if (componentCounter == stackSize) {
+					unsigned char *p;
+					/*first element on the stack is the trust anchor*/
+					certPath->nameType = 1; /* we only support DER encoded X.501 Names at the moment */
+					certPath->trustAnchorNameLen = i2d_X509_NAME(X509_get_subject_name(certificateInfo->x509), NULL);
+					p = malloc(certPath->trustAnchorNameLen);
+					certPath->trustAnchorName = p;
+					memset(certPath->trustAnchorName, 0, certPath->trustAnchorNameLen);
+					i2d_X509_NAME(X509_get_subject_name(certificateInfo->x509), &p);
+				}
+				sk_X509_push(certificateStack, certificateInfo->x509);
+				certificateInfo->x509 = NULL;
+			}
+			X509_INFO_free(certificateInfo);
+		}
+		certPath->certificateStack = certificateStack;
 		BIO_free(bio);
 		sk_X509_INFO_free(infoStack);
 	}

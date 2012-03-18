@@ -31,6 +31,7 @@
 /* For each multicast interface: */
 
 #define DFLT_PathToPrivateKey		""
+#define DFLT_CertificationPathList	NULL
 #define DFLT_IgnoreIfMissing		1
 #define DFLT_AdvSendAdv			0
 #define DFLT_MaxRtrAdvInterval		600

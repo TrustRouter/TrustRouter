@@ -91,7 +91,6 @@ static struct in6_addr get_prefix6(struct in6_addr const *addr, struct in6_addr 
 %token		T_AdvSourceLLAddress
 
 %token		T_CertPathFile
-%token		T_CertPathFolder
 %token		T_PathToPrivateKey
 %token		T_AdvOnLink
 %token		T_AdvAutonomous
@@ -237,7 +236,33 @@ ifaceparam 	: ifaceval
 		| dnssldef 	{ ADD_TO_LL(struct AdvDNSSL, AdvDNSSLList, $1); }
 		;
 
-ifaceval	: T_PathToPrivateKey absolutepath ';'
+ifaceval	: T_CertPathFile absolutepath ';'
+		{
+			// the certification path from the router certificate 
+			// to the certificate of the trust anchor in one file 
+			// and correctly ordered (router certificate comes last, trust anchor comes first)
+			if (iface) {
+				struct CertificationPath *newCertPath = malloc(sizeof(struct CertificationPath));
+				if (newCertPath == NULL) {
+					flog(LOG_CRIT, "malloc failed: %s", strerror(errno));
+					ABORT;
+				}
+				newCertPath->next = NULL;
+				strncpy(newCertPath->pathToCertificates, $2, PATH_MAX-1);
+				
+				if (iface->certificationPathList == NULL) {
+					iface->certificationPathList = newCertPath;
+				} else {
+					struct CertificationPath *certPath = iface->certificationPathList; 
+					while (certPath->next != NULL) {
+						certPath = certPath->next;
+					}
+					certPath->next = newCertPath;
+				}
+				dlog(LOG_DEBUG, 3, "Path to Certificate is: %s", newCertPath->pathToCertificates); 
+			}
+		} 
+		| T_PathToPrivateKey absolutepath ';'
 		{
 			// path to the private key that is used to sign messages
 			if (iface) {
@@ -579,47 +604,7 @@ prefixplist	: prefixplist prefixparms
 		| prefixparms
 		;
 
-prefixparms	: T_CertPathFile absolutepath ';'
-		{
-			// the complete certificate path in one file and correctly ordered
-			if (prefix) {
-				if (prefix->AutoSelected) {
-					struct AdvPrefix *p = prefix;
-					do {
-						p->IsPathToFileFlag = 1;
-						strncpy(p->PathToCertificates, $2, PATH_MAX-1);
-						dlog(LOG_DEBUG, 3, "Path to Certificate is: %s", p->PathToCertificates);
-						p = p->next;
-					} while (p && p->AutoSelected);
-				}
-				else {
-					prefix->IsPathToFileFlag = 1;
-					strncpy(prefix->PathToCertificates, $2, PATH_MAX-1);
-					dlog(LOG_DEBUG, 3, "Path to Certificate is: %s", prefix->PathToCertificates);
-				}
-			}
-		} 
-		| T_CertPathFolder absolutepath ';'
-		{
-			// the complete certification path in one folder
-			if (prefix) {
-				if (prefix->AutoSelected) {
-					struct AdvPrefix *p = prefix;
-					do {
-						p->IsPathToFileFlag = 0;
-						strncpy(p->PathToCertificates, $2, PATH_MAX-1);
-						dlog(LOG_DEBUG, 3, "Path to Certificate is: %s", p->PathToCertificates);
-						p = p->next;
-					} while (p && p->AutoSelected);
-				}
-				else {
-					prefix->IsPathToFileFlag = 0;
-					strncpy(prefix->PathToCertificates, $2, PATH_MAX-1);
-					dlog(LOG_DEBUG, 3, "Path to Certificate is: %s", prefix->PathToCertificates);
-				}
-			}
-		}
-		| T_AdvOnLink SWITCH ';'
+prefixparms	: T_AdvOnLink SWITCH ';'
 		{
 			if (prefix) {
 				if (prefix->AutoSelected) {

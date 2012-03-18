@@ -179,6 +179,7 @@ int setup_allrouters_membership(struct Interface *iface)
 
 	if (setsockopt(sock, SOL_IPV6, IPV6_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0)
 	{
+		flog(LOG_ERR, "setting socket to join all routers group returned: %s", strerror(errno));
 		/* linux-2.6.12-bk4 returns error with HUP signal but keep listening */
 		if (errno != EADDRINUSE)
 		{

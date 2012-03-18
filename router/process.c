@@ -23,8 +23,6 @@ static void process_ra(struct Interface *, unsigned char *msg, int len,
 	struct sockaddr_in6 *);
 static void process_cps(struct Interface *, unsigned char *msg, int len,
 	struct sockaddr_in6 *);
-static int  addr_match(struct in6_addr *a1, struct in6_addr *a2,
-	int prefixlen);
 
 void
 process(struct Interface *ifacel, unsigned char *msg, int len,
@@ -57,8 +55,7 @@ process(struct Interface *ifacel, unsigned char *msg, int len,
 
 	if (icmph->icmp6_type != ND_ROUTER_SOLICIT &&
 	    icmph->icmp6_type != ND_ROUTER_ADVERT &&
-	    icmph->icmp6_type != ND_CERTIFICATION_PATH_SOLICIT &&
-	    icmph->icmp6_type != ND_CERTIFICATION_PATH_ADVERT)
+	    icmph->icmp6_type != ND_CERTIFICATION_PATH_SOLICIT)
 	{
 		/*
 		 *	We just want to listen to RSs, RAs, CPSs
@@ -500,11 +497,12 @@ process_cps(struct Interface *iface, unsigned char *msg, int len,
 	struct sockaddr_in6 *addr)
 {
 	uint8_t *opt_str;
+	struct nd_certification_path_solicit *cps;
 	struct trust_anchor *trustAnchors = NULL;
 
 	/* validate the CPS */
+	cps = (struct nd_certification_path_solicit*)msg;
 	len -= sizeof(struct nd_certification_path_solicit);
-
 	opt_str = (uint8_t *)(msg + sizeof(struct nd_certification_path_solicit));
 
 	while (len > 0)
@@ -530,36 +528,36 @@ process_cps(struct Interface *iface, unsigned char *msg, int len,
 			return;
 		}
 		if (opt_str[0] == ND_OPT_TRUST_ANCHOR) {
-			/* found a trust anchor option, extract the name of the trust anchor */
-			struct trust_anchor *trustAnchor = trustAnchors;
-			do {
-				if (trustAnchor == NULL) {
-					trustAnchor = malloc(sizeof(struct trust_anchor));
-					trustAnchor->data = malloc(sizeof(struct nd_opt_trust_anchor));
-					trustAnchor->data->nd_opt_ta_type = opt_str[0];
-					trustAnchor->data->nd_opt_ta_len = opt_str[1];
-					trustAnchor->data->nd_opt_ta_name_type = opt_str[3];
-					trustAnchor->data->nd_opt_ta_pad_length = opt_str[4];
-					trustAnchor->data->nd_opt_ta_name = &opt_str[5];
-					trustAnchor->next = NULL;
+			/* found a trust anchor option */
+			struct trust_anchor *newTrustAnchor = malloc(sizeof(struct trust_anchor));
+			newTrustAnchor->data = malloc(sizeof(struct nd_opt_trust_anchor));
+			newTrustAnchor->data->nd_opt_ta_type = opt_str[0];
+			newTrustAnchor->data->nd_opt_ta_len = opt_str[1];
+			newTrustAnchor->data->nd_opt_ta_name_type = opt_str[3];
+			newTrustAnchor->data->nd_opt_ta_pad_length = opt_str[4];
+			newTrustAnchor->data->nd_opt_ta_name = &opt_str[5];
+			newTrustAnchor->next = NULL;
+
+			/* append it to the list */
+			if (trustAnchors == NULL) {
+				trustAnchors = newTrustAnchor;
+			} else {
+				struct trust_anchor *trustAnchor = trustAnchors;
+				while (trustAnchor->next != NULL) {
+					trustAnchor = trustAnchor->next;
 				}
-				trustAnchor = trustAnchor->next;
-			} while (trustAnchor != NULL);
+				trustAnchor->next = newTrustAnchor;
+			}
 		}
 
 		len -= optlen;
 		opt_str += optlen;
 	}
-	/* answer the certification path solicitation */
-	if (memcmp(&addr->sin6_addr.__in6_u, &in6addr_any, sizeof(in6addr_any)) == 0) {
-		/* received cps from unspecified address, answer to all nodes */
-		send_cpa(iface, NULL, trustAnchors);
-	} else {
-		send_cpa(iface, &addr->sin6_addr, trustAnchors);
-	}
+
+	send_cpa(iface, &addr->sin6_addr, cps, trustAnchors);
 }
 
-static int
+int
 addr_match(struct in6_addr *a1, struct in6_addr *a2, int prefixlen)
 {
 	unsigned int pdw;

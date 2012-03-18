@@ -65,7 +65,6 @@ AdvDefaultPreference	{ return T_AdvDefaultPreference; }
 AdvSourceLLAddress	{ return T_AdvSourceLLAddress; }
 
 CertPathFile	{ return T_CertPathFile; }
-CertPathFolder	{ return T_CertPathFolder; }
 PathToPrivateKey	{ return T_PathToPrivateKey; }
 AdvOnLink		{ return T_AdvOnLink; }
 AdvAutonomous		{ return T_AdvAutonomous; }

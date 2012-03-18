@@ -29,6 +29,7 @@ extern int sock;
 
 struct AdvPrefix;
 struct Clients;
+struct CertificationPath;
 
 #define HWADDR_MAX 16
 #define USER_HZ 100
@@ -68,8 +69,9 @@ struct Interface {
 
 	/* key that is used to sign messages with SEND */
 	/* Refer to the addition of the signature option in send_ra(...) in send.c for further details */
-	char		PathToPrivateKey[PATH_MAX];
-	RSA			*PrivateKey;
+	char						PathToPrivateKey[PATH_MAX];
+	RSA							*PrivateKey;
+	struct CertificationPath	*certificationPathList;
 
 	/* Mobile IPv6 extensions */
 	int			AdvIntervalOpt;
@@ -103,11 +105,6 @@ struct Clients {
 struct AdvPrefix {
 	struct in6_addr		Prefix;
 	uint8_t			PrefixLen;
-
-	/* path to certificate chain for SEND */
-	int			IsPathToFileFlag;
-	char		PathToCertificates[PATH_MAX];
-	STACK_OF(X509) *CertificateChain;
 
 	int			AdvOnLinkFlag;
 	int			AdvAutonomousFlag;
@@ -187,6 +184,27 @@ struct HomeAgentInfo {
 };
 
 /* SEND structures and options (see RFC 3971) */
+
+struct CertificationPath {
+	//int			IsPathToFileFlag;
+	char		pathToCertificates[PATH_MAX];
+	/* The stack contains the certificate chain from the router certificate
+	 * to the certificate signed by the trust anchor.
+	 * The top element of the stack is the certificate of the router itself,
+	 * the base element is the certificate signed by the trust anchor. */
+	STACK_OF(X509) 				*certificateStack;
+	uint8_t 					nameType; /* 1 = DER encoded X.501 Name, 2 = Fully Qualified Domain Name */
+	unsigned char 				*trustAnchorName;
+	size_t						trustAnchorNameLen;
+	struct CertificationPath 	*next;
+};
+
+#define ASN1_BUFFER_SIZE	1024
+#define KEY_HASH_SIZE		16
+#define IPV6_ADDRESS_SIZE	16
+#define SOLICITED_NODE_MULTICAST_PREFIX_LENGTH	13
+#define ND_OPT_PADDING_BOUNDARY	8 /* RFC 4861 4.6 says, ND options are padded to the next 64bit boundary */
+
 // TODO this should be defined in icmp6.h
 #define ND_CERTIFICATION_PATH_SOLICIT	148
 
@@ -216,7 +234,6 @@ struct nd_certification_path_advert {
 #define nd_cpa_identifier		nd_cpa_hdr.icmp6_data16[0]
 #define nd_cpa_all_components	nd_cpa_hdr.icmp6_data16[1]
 
-#define ND_OPT_PADDING_BOUNDARY	8 /* RFC 4861 4.6 says, ND options are padded to the next 64bit boundary */
 
 #define ND_OPT_TRUST_ANCHOR		15
 struct nd_opt_trust_anchor {
@@ -245,9 +262,6 @@ struct nd_opt_certificate {
 #define nd_opt_cert_type	nd_opt_cert_hdr.nd_opt_type
 #define nd_opt_cert_len		nd_opt_cert_hdr.nd_opt_len
 
-#define ASN1_BUFFER_SIZE	1024
-#define KEY_HASH_SIZE		16
-#define IPV6_ADDRESS_SIZE	16
 #define ND_OPT_SIGNATURE	12
 struct nd_opt_signature {
 	struct nd_opt_hdr	nd_opt_sig_hdr;							// 1 byte type and 1 byte length
@@ -303,11 +317,12 @@ int open_icmpv6_socket(void);
 /* send.c */
 int send_ra(struct Interface *iface, struct in6_addr *dest);
 int send_ra_forall(struct Interface *iface, struct in6_addr *dest);
-int send_cpa(struct Interface *iface, struct in6_addr *dest, struct trust_anchor *trustAnchors);
+int send_cpa(struct Interface *iface, struct in6_addr *dest, struct nd_certification_path_solicit *cps, struct trust_anchor *trustAnchors);
 
 /* process.c */
 void process(struct Interface *, unsigned char *, int,
 	struct sockaddr_in6 *, struct in6_pktinfo *, int);
+int addr_match(struct in6_addr *, struct in6_addr *, int);
 
 /* recv.c */
 int recv_rs_ra(unsigned char *, struct sockaddr_in6 *, struct in6_pktinfo **, int *);
