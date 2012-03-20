@@ -123,10 +123,11 @@ process(struct Interface *ifacel, unsigned char *msg, int len,
 		return;
 	}
 
+	//FIXME: OS vendors of Windows and Mac OS seem to have a good reason for setting the hop limit to 64 for CPS messages.
 	if (hoplimit != 255)
 	{
 		print_addr(&addr->sin6_addr, addr_str);
-		flog(LOG_WARNING, "received RS or RA with invalid hoplimit %d from %s",
+		flog(LOG_WARNING, "received message with invalid hoplimit %d from %s",
 			hoplimit, addr_str);
 		return;
 	}
@@ -515,7 +516,7 @@ process_cps(struct Interface *iface, unsigned char *msg, int len,
 			return;
 		}
 
-		optlen = (opt_str[1] << 3); /* because multiplying with 8 would be too easy */
+		optlen = (opt_str[1] << 3); /* length is in unit of 8 octets, converting it to length in bytes */
 
 		if (optlen == 0)
 		{
@@ -554,7 +555,9 @@ process_cps(struct Interface *iface, unsigned char *msg, int len,
 		opt_str += optlen;
 	}
 
-	send_cpa(iface, &addr->sin6_addr, cps, trustAnchors);
+	if (send_cpa(iface, &addr->sin6_addr, cps, trustAnchors) < 0) {
+		flog(LOG_ERR, "An error occurred while answering a CPS messages. No CPA messages were sent in response.");
+	}
 }
 
 int

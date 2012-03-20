@@ -520,7 +520,6 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 	 */
 
 	if (iface->PrivateKey != NULL && iface->certificationPathList != NULL) {
-		// TODO handle all possible malloc failures
 		/* magic sequence required by RFC 3971 */
 		const char cgaMessageTypeTag[] = {0x08,0x6f,0xca,0x5e,0x10,0xb2,0x00,0xc9,0x9c,0x8c,0xe0,0x01,0x64,0x27,0x7c,0x08};
 		struct nd_opt_signature signature;
@@ -563,17 +562,28 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		}
 
 		/* calculate the key hash */
+		keyHash = malloc(EVP_MAX_MD_SIZE);
+		if (keyHash == NULL) {
+			flog(LOG_ERR, "error while allocating buffer for key hash");
+			return 0; /* returning 0 will schedule new timers */
+		}
 		EVP_MD_CTX_init(&keyHashContext);
 		EVP_DigestInit_ex(&keyHashContext, EVP_sha1(), NULL);
 		EVP_DigestUpdate(&keyHashContext, asn1, asn1Length);
-		keyHash = malloc(EVP_MAX_MD_SIZE);
 		EVP_DigestFinal_ex(&keyHashContext, keyHash, &keyHashLength);
 		EVP_MD_CTX_cleanup(&keyHashContext);
 		memcpy(signature.nd_opt_sig_key_hash, keyHash, KEY_HASH_SIZE);
 
 		/* we need to calculate the checksum of the icmp6 packet before we sign it,
 		 * currently it's 0 because the socket will calculate it automatically. */
+
+		/* build a buffer with the data we need to calculate the checksum of */
 		checksumBuffer = malloc(40 + len); /* 40 byte for the ipv6 pseudo header and the length of the whole icmp packet without the signature option */
+		if (checksumBuffer == NULL) {
+			flog(LOG_ERR, "error while allocating buffer for checksum");
+			return 0; /* returning 0 will schedule new timers */
+		}
+
 		memcpy(checksumBuffer, &iface->if_addr, IPV6_ADDRESS_SIZE);
 		checksumBufferDest = IPV6_ADDRESS_SIZE;
 		memcpy(checksumBuffer + checksumBufferDest, (void*)dest, IPV6_ADDRESS_SIZE);
@@ -604,6 +614,11 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		radvert->nd_ra_cksum = (uint16_t)(~cksum);
 
 		/* compute the signature */
+		messageDigest = malloc(EVP_MAX_MD_SIZE);
+		if (messageDigest == NULL) {
+			flog(LOG_ERR, "error while allocating buffer for message digest");
+			return 0; /* returning 0 will schedule new timers */
+		}
 		EVP_MD_CTX_init(&shaContext);
 		EVP_DigestInit_ex(&shaContext, EVP_sha1(), NULL);
 		EVP_DigestUpdate(&shaContext, cgaMessageTypeTag, 16);
@@ -612,11 +627,14 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		/* at this point, the buffer contains the complete
 		 * ICMP header and all options except the signature */
 		EVP_DigestUpdate(&shaContext, buff, len);
-		messageDigest = malloc(EVP_MAX_MD_SIZE);
 		EVP_DigestFinal_ex(&shaContext, messageDigest, &messageDigestLength);
 		EVP_MD_CTX_cleanup(&shaContext);
 
 		rsaSignature = malloc(RSA_size(iface->PrivateKey));
+		if (rsaSignature == NULL) {
+			flog(LOG_ERR, "error while allocating buffer for signature");
+			return 0; /* returning 0 will schedule new timers */
+		}
 		RSA_sign(NID_sha1, messageDigest, messageDigestLength, rsaSignature, &rsaSignatureLength, iface->PrivateKey);
 
 		signature.nd_opt_sig_signature = rsaSignature;
@@ -641,8 +659,10 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 		buff_dest = len;
 		send_ra_inc_len(&len, totalDataLength);
 		memcpy(buff + buff_dest, &signature, fixedDataLength);
-		memcpy(buff + buff_dest + fixedDataLength, signature.nd_opt_sig_key_hash, KEY_HASH_SIZE);
-		memcpy(buff + buff_dest + fixedDataLength + KEY_HASH_SIZE, signature.nd_opt_sig_signature, RSA_size(iface->PrivateKey));
+		buff_dest += fixedDataLength;
+		memcpy(buff + buff_dest, signature.nd_opt_sig_key_hash, KEY_HASH_SIZE);
+		buff_dest += KEY_HASH_SIZE;
+		memcpy(buff + buff_dest, signature.nd_opt_sig_signature, RSA_size(iface->PrivateKey));
 
 		/* add the padding */
 		buff_dest = len;
@@ -699,8 +719,8 @@ send_ra(struct Interface *iface, struct in6_addr *dest)
 
 /*
  * Sends certification path advertisement messages for the given trust anchors on the given interface
- * to the given IPv6 address.
- * If dest is NULL, the CPAs will be send to the all nodes multicast address
+ * to the given IPv6 address and returns the number of successfully sent CPA messages.
+ * If dest is NULL, the CPAs will be send to the all nodes multicast address.
  */
 int
 send_cpa(struct Interface *iface, struct in6_addr *cpsSource, struct nd_certification_path_solicit *cps, struct trust_anchor *trustAnchors) {
@@ -720,7 +740,6 @@ send_cpa(struct Interface *iface, struct in6_addr *cpsSource, struct nd_certific
 			flog(LOG_WARNING, "interface %s does not exist, ignoring the interface", iface->Name);
 		}
 		iface->HasFailed = 1;
-		/* not really a 'success', but we need to schedule new timers.. */
 		return 0;
 	} else {
 		/* check_device was successful, act if it has failed previously */
@@ -733,7 +752,7 @@ send_cpa(struct Interface *iface, struct in6_addr *cpsSource, struct nd_certific
 			 * timer list corruption.
 			 */
 			reload_config();
-			return -1;
+			return 0;
 		}
 	}
 
@@ -747,6 +766,10 @@ send_cpa(struct Interface *iface, struct in6_addr *cpsSource, struct nd_certific
 		 * The solicited node multicast group is formed by taking the source address of the cps
 		 * and replacing the most significant 13 bytes with the respective prefix. */
 		dest = malloc(sizeof(struct in6_addr));
+		if (dest == NULL) {
+			flog(LOG_ERR, "error while allocating buffer for destination address of CPA message");
+			return 0;
+		}
 		memcpy(dest, cpsSource, IPV6_ADDRESS_SIZE);
 		memcpy(dest, solicitedNodePrefix, SOLICITED_NODE_MULTICAST_PREFIX_LENGTH);
 		identifier = cps->nd_cps_identifier;
@@ -756,24 +779,28 @@ send_cpa(struct Interface *iface, struct in6_addr *cpsSource, struct nd_certific
 		/* no trust anchors were given in the solicitation, send all paths */
 		struct CertificationPath *certPath = iface->certificationPathList;
 		while (certPath != NULL) {
-			success += send_cpa_components(iface, dest, identifier, cps->nd_cps_component, certPath);
+			success += send_cpa_components(iface, dest, identifier, cps->nd_cps_component, certPath, NULL);
 			certPath = certPath->next;
 		}
 	} else {
 		/* only send certification paths that lead to one of the specified trust anchors */
 		struct CertificationPath *certPath = iface->certificationPathList;
-		while (certPath != NULL) {
-			struct trust_anchor *trustAnchor = trustAnchors;
-			while (trustAnchor != NULL) {
+		struct trust_anchor *trustAnchor = trustAnchors;
+		while (trustAnchor != NULL) {
+			while (certPath != NULL) {
 				if (memcmp(	trustAnchor->data->nd_opt_ta_name,
 							certPath->trustAnchorName,
 							certPath->trustAnchorNameLen) == 0) {
-					success += send_cpa_components(iface, dest, identifier, cps->nd_cps_component, certPath);
+					success += send_cpa_components(iface, dest, identifier, cps->nd_cps_component, certPath, NULL);
 				}
-				trustAnchor = trustAnchor->next;
+				certPath = certPath->next;
 			}
-			certPath = certPath->next;
+			trustAnchor = trustAnchor->next;
 		}
+	}
+	if (success == 0){
+		/* no CPS message was send successfully */
+		success = send_cpa_components(iface, dest, identifier, 0, NULL, trustAnchors);
 	}
 	/* free allocated memory */
 	if(addr_match(cpsSource, (struct in6_addr*) unspecifiedAddr, 128) == 0) {
@@ -782,9 +809,18 @@ send_cpa(struct Interface *iface, struct in6_addr *cpsSource, struct nd_certific
 	return success;
 }
 
+/* Sends CPA messages on the given interface to the given destination
+ * with the given identifier, containing the given component of the given certification path
+ * as a certificate option and returns the number of successfully sent CPAs.
+ * If the component is ND_CPS_COMPONENT_ALL, CPS messages for all certificates except
+ * the trust anchor will be send.
+ * The first message of a sequence of CPA messages will also contain a trust anchor option
+ * corresponding to the trust anchor of the given certification path.
+ * If trust anchors are != NULL, a single CPA without any certificates but with
+ * the given trust anchors as trust anchor option will be send. */
 int
-send_cpa_components(struct Interface *iface, struct in6_addr *dest, int identifier, int component, struct CertificationPath *certPathToSend) {
-	uint16_t cpaCount;
+send_cpa_components(struct Interface *iface, struct in6_addr *dest, int identifier, int component, struct CertificationPath *certPathToSend, struct trust_anchor *trustAnchors) {
+	uint16_t cpaCount, successCount;
 	size_t stackSize = sk_X509_num(certPathToSend->certificateStack);
 
 	if (component == ND_CPS_COMPONENT_ALL) {
@@ -794,6 +830,8 @@ send_cpa_components(struct Interface *iface, struct in6_addr *dest, int identifi
 		/* send only the specified component */
 		cpaCount = 1;
 	}
+	successCount = 0;
+
 	for (; cpaCount >= 1; cpaCount--) {
 		struct sockaddr_in6 addr;
 		struct in6_pktinfo *pkt_info;
@@ -884,6 +922,10 @@ send_cpa_components(struct Interface *iface, struct in6_addr *dest, int identifi
 		/* convert certificate to DER */
 		certLen = i2d_X509(certData, NULL);
 		p = malloc(certLen);
+		if (p == NULL) {
+			flog(LOG_ERR, "error while allocating buffer for DER encoded certificate");
+			continue;
+		}
 		certificate.nd_opt_cert_certificate = p;
 		i2d_X509(certData, &p);
 
@@ -947,11 +989,13 @@ send_cpa_components(struct Interface *iface, struct in6_addr *dest, int identifi
 				flog(LOG_WARNING, "sendmsg: %s", strerror(errno));
 			else
 				dlog(LOG_DEBUG, 3, "sendmsg: %s", strerror(errno));
+		} else {
+			++successCount;
 		}
 
 		/* free allocated memory */
 		free(certificate.nd_opt_cert_certificate);
 	}
 
-	return 0;
+	return successCount;
 }
