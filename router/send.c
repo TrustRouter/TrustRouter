@@ -21,7 +21,8 @@ int send_cpa_components(	struct Interface *iface,
 							struct in6_addr *dest,
 							int identifier,
 							int component,
-							struct CertificationPath *certPathToSend);
+							struct CertificationPath *certPathToSend,
+							struct trust_anchor *trustAnchors);
 
 /*
  * Sends an advertisement for all specified clients of this interface
