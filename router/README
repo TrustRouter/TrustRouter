@@ -4,6 +4,8 @@ You'll need the following software installed to be able to build:
 1. > sudo apt-get install automake
 2. > sudo apt-get install libtool
 3. > sudo apt-get install libssl-dev
+3. > sudo apt-get install bison
+3. > sudo apt-get install flex
 
 Build from Repository:
 ======================
