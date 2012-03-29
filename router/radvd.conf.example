@@ -39,6 +39,18 @@ interface eth0
 	AdvHomeAgentFlag off;
 
 #
+# You can enable the signing of router advertisements by specifying an 
+# absolute path to a private key file and an absolute path to a certifiction
+# path file. A certification path file has to contain all certificates
+# starting with the certificate of a trust anchor and ending with the
+# certificate of the router itself.
+# All certificates have to be in the PEM format.
+#
+
+#	PathToPrivateKey /etc/ssl/private/router.key;
+#	CertPathFile /etc/ssl/certs/routerCertificationPath.cer;
+
+#
 # example of a standard prefix
 #
 	prefix 2001:db8:1:0::/64

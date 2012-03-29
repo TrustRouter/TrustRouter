@@ -500,18 +500,19 @@ config_interface(void)
 	struct Interface *iface;
 	for(iface=IfaceList; iface; iface=iface->next)
 	{
-		FILE *fp = fopen(iface->PathToPrivateKey, "r");
-		if(fp == NULL) {
-			flog(LOG_ERR, "Error opening private key file at path %s, error is '%s'", iface->PathToPrivateKey, strerror(errno));
-			exit(1);
+		if (!(iface->PathToPrivateKey == NULL || *iface->PathToPrivateKey == '\0')) {
+			FILE *fp = fopen(iface->PathToPrivateKey, "r");
+			if(fp == NULL) {
+				flog(LOG_ERR, "Error opening private key file at path %s, error is '%s'", iface->PathToPrivateKey, strerror(errno));
+				exit(1);
+			}
+			iface->PrivateKey = (RSA*)PEM_read_RSAPrivateKey(fp, NULL, NULL, NULL);
+			if(iface->PrivateKey == NULL) {
+				flog(LOG_ERR, "Error reading the private key file");
+				exit(1);
+			}
+			config_certificates(iface);
 		}
-		iface->PrivateKey = (RSA*)PEM_read_RSAPrivateKey(fp, NULL, NULL, NULL);
-		if(iface->PrivateKey == NULL) {
-			flog(LOG_ERR, "Error reading the private key file");
-			exit(1);
-		}
-		config_certificates(iface);
-
 		if (iface->AdvLinkMTU)
 			set_interface_linkmtu(iface->Name, iface->AdvLinkMTU);
 		if (iface->AdvCurHopLimit)
