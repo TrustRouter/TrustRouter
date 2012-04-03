@@ -64,4 +64,4 @@ class Config(object):
             return value
         elif value is not None:
             log("Invalid config option for NDPROTECTOR_COMPATIBILITY: Must be a bool.")
-        return True
+        return True 
