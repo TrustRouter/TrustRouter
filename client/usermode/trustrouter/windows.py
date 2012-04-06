@@ -4,7 +4,8 @@ import sys
 import time
 import win32file
 from trustrouter.core import RAVerifier
-from trustrouter.packet import IPPROTO_ICMPV6
+from trustrouter.packet import IPPROTO_ICMPV6, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP
+from ipaddr import IPv6Address
 
 class WindowsAdapter(object):
     CALLOUT_DRIVER_NAME = "\\\\.\\trustrtr"
@@ -69,8 +70,7 @@ class WindowsAdapter(object):
             Therefore, we need to join this multicast group.
             On Mac OS X, this seems to happen automatically.
         '''
-        mreq = struct.pack("=16sI", b"\xff\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\xff\x01\x44\x77", 11)
-        sock.setsockopt(41, 12, mreq)
+        self.join_multicast_group(sock, interface_index)
         
         if self.shared.verify(packet_byte_array, interface_index, sock):                
             action = self.ACTION_PERMIT
@@ -81,6 +81,27 @@ class WindowsAdapter(object):
         
         result.extend(struct.pack("c", bytes(action, encoding="ascii")))
         win32file.WriteFile(self.callout, result, None)
+        
+    def join_multicast_group(self, sock, interface_index):
+        # Get all IPv6 address info tuples of the host.
+        addr_info_list = [addr_info[4] for addr_info in socket.getaddrinfo(socket.gethostname(), None, family=socket.AF_INET6)]
+        
+        # Filter IPv6 address infos by the specified interface index, select only IPv6 address
+        addr_list = [addr[0] for addr in addr_info_list if addr[3] == interface_index]
+
+        for addr in addr_list:        
+            # Removes the %-sign if present and everything thereafter.
+            addr = addr.partition("%")[0]
+
+            # Get the byte representation of the address
+            addr_bytes = IPv6Address(addr).packed
+
+            # Build the solicited-node multicast address by appending the
+            # last 3 bytes of the unicast address to ff02::1:ff__:
+            mcast_addr_end = addr_bytes[-3:]            
+            mcast_addr = b"\xff\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\xff" + mcast_addr_end
+            mreq = struct.pack("=16sI", mcast_addr, interface_index)
+            sock.setsockopt(IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, mreq)
         
 def run(log_fn):
     adapter = WindowsAdapter(log_fn=log_fn)

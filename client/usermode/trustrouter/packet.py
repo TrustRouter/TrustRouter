@@ -18,6 +18,10 @@ ICMPv6_NDP_OPTIONS = {
 # included in Python, see http://bugs.python.org/issue6926    
 IPPROTO_ICMPV6 = 58
 
+# Constants used for Windows when setting socket options.
+IPPROTO_IPV6 = 41
+IPV6_ADD_MEMBERSHIP = 12
+
 class AbstractPacket(object):
     def parse(self, binary):
         bit_offset = 0
