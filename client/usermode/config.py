@@ -13,3 +13,7 @@ MODE = "mixedMode"
 # in addition to the standard trust anchors that ship with TrustRouter
 
 ADDITIONAL_TRUST_ANCHORS = []
+
+# NDPROTECTOR_COMPATIBILITY
+# enable compatibility for NDprotecotor (http://amnesiak.org/NDprotector/)
+NDPROTECTOR_COMPATIBILITY = False

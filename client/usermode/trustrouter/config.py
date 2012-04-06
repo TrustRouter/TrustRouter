@@ -26,6 +26,7 @@ class Config(object):
     def __init__(self, config, error_log):
         self.mode = self._mode(config, error_log)
         self.trust_anchors = self._trust_anchors(config, error_log)
+        self.ndprotector_compatibility = self._ndprotector_compatibility(config, error_log)
 
 
     def _mode(self, config, log):
@@ -55,3 +56,12 @@ class Config(object):
         elif cert_list is not None:
             log("Invalid config option for ADDITIONAL_TRUST_ANCHORS: Must be a list.")
         return []
+
+
+    def _ndprotector_compatibility(self, config, log):
+        value = getattr(config, "NDPROTECTOR_COMPATIBILITY", None)
+        if isinstance(value, bool):
+            return value
+        elif value is not None:
+            log("Invalid config option for NDPROTECTOR_COMPATIBILITY: Must be a bool.")
+        return True 

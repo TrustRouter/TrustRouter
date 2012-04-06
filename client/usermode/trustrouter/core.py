@@ -48,9 +48,19 @@ class RAVerifier(object):
             self.log("Found data after RSA option --> reject")
             return False
 
-        signed_data = self._get_signed_data(ra, icmp_data)            
-         
-        identifier = self._send_cps(sock, scopeid, ra["source_addr"])
+        signed_data = self._get_signed_data(ra, icmp_data)
+
+        if not self.config.ndprotector_compatibility:
+            # send cps to all routers multicast address
+            cps_addr = ("ff02::2", 0, 0, scopeid)
+            # set hop limit to 255 (10 = IPV6_MULTICAST_HOPS)
+            sock.setsockopt(socket.IPPROTO_IPV6, 10, 255)
+        else:
+            # NDProtector has a bug when sending to all routers mutlicast, using unicast instead
+            cps_addr = (self._ipv6_n_to_a(ra["source_addr"]), 0, 0, scopeid)
+            # set hop limit to 255 (4 = IPV6_UNICAST_HOPS)
+            sock.setsockopt(socket.IPPROTO_IPV6, 4, 255)
+        identifier = self._send_cps(sock, cps_addr)
 
         # process CPAs
         intermediate_certs = []
@@ -124,15 +134,11 @@ class RAVerifier(object):
         return struct.pack("!H", ~checksum & 0xffff)
     
 
-    def _send_cps(self, sock, scopeid, address):
+    def _send_cps(self, sock, address):
         self.log("request certificates")
         identifier = random.randint(0, (2 ** 16) - 1)
         cps = struct.pack("!BBHHH", 148, 0, 0, identifier, 65535)
-        # send to all routers multicast address
-        # addr = ("ff02::2", 0, 0, scopeid)
-        # NDProtector has a bug when sending to all routers mutlicast, using unicast instead
-        addr = self._ipv6_n_to_a(address), 0, 0, scopeid
-        sock.sendto(cps, addr)
+        sock.sendto(cps, address)
         return identifier
 
 
