@@ -31,29 +31,33 @@ class MacOSAdapter(object):
     def main(self):
         self.socket.connect(self.KEXT_NAME)
         while True:
-            self._forward_router_advertisment()
+            packet_id = self._readBytes(struct.calcsize("P"))
+            # Read IPv6 Header (= 40 bytes)
+            packet = self._readBytes(40)
+            scopeid = self._remove_scope_id_from_addrs(packet)
+            # Unmarshal payload length field
+            payload_length = struct.unpack("!H", packet[4:6])[0]
+            packet.extend(self._readBytes(payload_length))
 
+            sock = socket.socket(
+                socket.AF_INET6,
+                socket.SOCK_RAW,
+                IPPROTO_ICMPV6)        
+            sock.settimeout(2)
+            
+            try:
+                verified_ra = self.verifier.verify(packet, scopeid, sock)
+            except Exception as e:
+                self.verifier.log("Error: %s" % e)
+                # something went wrong during verification
+                verified_ra = False
 
-    def _forward_router_advertisment(self):
-        packet_id = self._readBytes(struct.calcsize("P"))
-        # Read IPv6 Header (= 40 bytes)
-        packet = self._readBytes(40)
-        scopeid = self._remove_scope_id_from_addrs(packet)
-        # Unmarshal payload length field
-        payload_length = struct.unpack("!H", packet[4:6])[0]
-        packet.extend(self._readBytes(payload_length))
-
-        try:
-            verified_ra = self.verifier.verify(packet, scopeid)
-        except Exception as e:
-            self.verifier.log("Error: %s" % e)
-            # something went wrong during verification
-            verified_ra = False
-
-        if verified_ra:
-            self._send_result(packet_id, self.ACTION_ACCEPT)
-        else:
-            self._send_result(packet_id, self.ACTION_REJECT)
+            sock.close()
+            
+            if verified_ra:
+                self._send_result(packet_id, self.ACTION_ACCEPT)
+            else:
+                self._send_result(packet_id, self.ACTION_REJECT)
 
 
     def _send_result(self, id, action):

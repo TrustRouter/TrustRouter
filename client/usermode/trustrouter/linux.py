@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-from socket import AF_INET6
-
+import socket
 import sys
 from trustrouter import nfqueue
 from trustrouter.core import RAVerifier
@@ -11,9 +10,15 @@ def cb(payload):
     print("python callback called!")
 
     common_part = RAVerifier()
+    sock = socket.socket(
+        socket.AF_INET6,
+        socket.SOCK_RAW,
+        IPPROTO_ICMPV6)        
+    sock.settimeout(2)
     if common_part.verify(
             payload.get_data(),
-            payload.get_indev()):
+            payload.get_indev(),
+            sock):
         payload.set_verdict(nfqueue.NF_ACCEPT)
     else:
         payload.set_verdict(nfqueue.NF_DROP)
@@ -27,7 +32,7 @@ def run():
     q.open()
 
     print("bind")
-    q.bind(AF_INET6)
+    q.bind(socket.AF_INET6)
 
     print("setting callback")
     q.set_callback(cb)
