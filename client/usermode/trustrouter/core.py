@@ -54,12 +54,12 @@ class RAVerifier(object):
             # send cps to all routers multicast address
             cps_addr = ("ff02::2", 0, 0, scopeid)
             # set hop limit to 255 (10 = IPV6_MULTICAST_HOPS)
-            sock.setsockopt(socket.IPPROTO_IPV6, 10, 255)
+            sock.setsockopt(packet.IPPROTO_IPV6, 10, 255)
         else:
             # NDProtector has a bug when sending to all routers mutlicast, using unicast instead
             cps_addr = (self._ipv6_n_to_a(ra["source_addr"]), 0, 0, scopeid)
             # set hop limit to 255 (4 = IPV6_UNICAST_HOPS)
-            sock.setsockopt(socket.IPPROTO_IPV6, 4, 255)
+            sock.setsockopt(packet.IPPROTO_IPV6, 4, 255)
         identifier = self._send_cps(sock, cps_addr)
 
         # process CPAs
