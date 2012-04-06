@@ -1,8 +1,10 @@
-import win32file
-import sys
+import socket
 import struct
+import sys
 import time
+import win32file
 from trustrouter.core import RAVerifier
+from trustrouter.packet import IPPROTO_ICMPV6
 
 class WindowsAdapter(object):
     CALLOUT_DRIVER_NAME = "\\\\.\\trustrtr"
@@ -56,11 +58,27 @@ class WindowsAdapter(object):
         result = bytearray()
         result.extend(address_byte_array)
 
-        if self.shared.verify(packet_byte_array, interface_index):                
+        sock = socket.socket(
+            socket.AF_INET6,
+            socket.SOCK_RAW,
+            IPPROTO_ICMPV6)        
+        sock.settimeout(2)
+        
+        ''' 
+            The CPAs will have the solicited-node multicast address as target.
+            Therefore, we need to join this multicast group.
+            On Mac OS X, this seems to happen automatically.
+        '''
+        mreq = struct.pack("=16sI", b"\xff\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\xff\x01\x44\x77", 11)
+        sock.setsockopt(41, 12, mreq)
+        
+        if self.shared.verify(packet_byte_array, interface_index, sock):                
             action = self.ACTION_PERMIT
         else:
             action = self.ACTION_BLOCK
             
+        sock.close()
+        
         result.extend(struct.pack("c", bytes(action, encoding="ascii")))
         win32file.WriteFile(self.callout, result, None)
         

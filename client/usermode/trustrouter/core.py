@@ -26,7 +26,7 @@ class RAVerifier(object):
         self._trusted_routers = []
         self._secured_prefixes = []
 
-    def verify(self, data, scopeid):
+    def verify(self, data, scopeid, sock):
         if self.config.mode == config.MODE_NO_SEND:
             return True
 
@@ -48,19 +48,13 @@ class RAVerifier(object):
             self.log("Found data after RSA option --> reject")
             return False
 
-        signed_data = self._get_signed_data(ra, icmp_data)
-
-        sock = socket.socket(
-            socket.AF_INET6,
-            socket.SOCK_RAW,
-            packet.IPPROTO_ICMPV6)        
+        signed_data = self._get_signed_data(ra, icmp_data)            
+         
         identifier = self._send_cps(sock, scopeid, ra["source_addr"])
 
         # process CPAs
         intermediate_certs = []
-        router_certs = []
-
-        sock.settimeout(2)
+        router_certs = []        
         starttime = time.time()
 
         while time.time() - starttime < CPS_RETRY_MAX:
@@ -77,12 +71,10 @@ class RAVerifier(object):
                             signed_data,
                             rsa_option["digital_signature"]):
                 self.log("Valid signature --> accept")
-                sock.close()
                 self._add_to_secured_list(ra, prefix_option)
                 return True
                 
         self.log("Invalid Signature --> reject")
-        sock.close()
         return False
 
 
@@ -148,15 +140,15 @@ class RAVerifier(object):
         try:
             cpa_data, from_addr = sock.recvfrom(65535)
         except socket.timeout:
+            self.log("CPA receive timeout")
             return None
-
         if from_addr[3] != scopeid or cpa_data[0] != 149:
             return None
         
         cpa = packet.ICMPv6_NDP_CPA(cpa_data)
         if cpa["identifier"] != identifier and cpa["identifier"] != 0:
             return None
-        
+        self.log("received CPA after")
         return cpa
     
 
