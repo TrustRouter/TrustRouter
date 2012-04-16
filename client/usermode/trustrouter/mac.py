@@ -3,6 +3,7 @@ import struct
 import syslog
 
 from trustrouter.core import RAVerifier
+from trustrouter.packet import IPPROTO_ICMPV6
 
 class MacOSAdapter(object):
 

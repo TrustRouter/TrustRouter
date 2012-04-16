@@ -3,6 +3,7 @@ import socket
 import sys
 from trustrouter import nfqueue
 from trustrouter.core import RAVerifier
+from trustrouter.packet import IPPROTO_ICMPV6
 
 RA_TYPE = "134"
 
