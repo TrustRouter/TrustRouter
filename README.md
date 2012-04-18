@@ -16,12 +16,12 @@ Do you have comments, questions, or remarks? Contact us at team@trustrouter.net.
 
 Version History
 ---------------
-v1.1 (April 18, 2012)
-- set the hop limit of CPS messages to the correct value of 255
-- Windows: correctly join solicited-node multi-cast groups
+v1.1 (April 18, 2012)<br/>
+- set the hop limit of CPS messages to the correct value of 255<br/>
+- Windows: correctly join solicited-node multi-cast groups<br/>
 - Mac: added configuration option to disable NDProtector compatibility mode
 
-v1.0 (March 16, 2012)
+v1.0 (March 16, 2012)<br/>
 - initial release
 
 
