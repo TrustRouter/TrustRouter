@@ -14,6 +14,16 @@ TrustRouter is a project developed by the following five master students of IT-S
 
 Do you have comments, questions, or remarks? Contact us at team@trustrouter.net. 
 
+Version History
+---------------
+v1.1 (April 18, 2012)
+- set the hop limit of CPS messages to the correct value of 255
+- Windows: correctly join solicited-node multi-cast groups
+- Mac: added configuration option to disable NDProtector compatibility mode
+
+v1.0 (March 16, 2012)
+- initial release
+
 
 Configuration
 -------------
@@ -27,6 +37,9 @@ On Mac OS X you can configure the following options in the configuration file lo
 
 **ADDITIONAL_TRUST_ANCHORS**: 
 list of paths to DER encoded certificates that should be used as trust anchors in addition to the standard trust anchors that ship with TrustRouter (default: empty list)
+
+**NDPROTECTOR_COMPATIBILITY**:
+boolean to enable compatibility mode for [NDprotecotor](http://amnesiak.org/NDprotector/)
 
 Documentation
 -------------

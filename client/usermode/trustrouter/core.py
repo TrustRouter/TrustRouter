@@ -154,7 +154,7 @@ class RAVerifier(object):
         cpa = packet.ICMPv6_NDP_CPA(cpa_data)
         if cpa["identifier"] != identifier and cpa["identifier"] != 0:
             return None
-        self.log("received CPA after")
+        self.log("received CPA")
         return cpa
     
 
